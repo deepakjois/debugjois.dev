@@ -15,7 +15,7 @@ if [[ -z "$OBSIDIAN_REPO" ]]; then
 fi
 
 # Rsync contents
-rsync -av "$OBSIDIAN_REPO/daily/" content/daily-notes/
+rsync -au --out-format="%n" "$OBSIDIAN_REPO/daily/" content/daily-notes/
 
 # Check if there are changes
 if [[ -n $(git status -s) ]]; then
