@@ -24,6 +24,7 @@ if [[ -n $(git status -s) ]]; then
     git add content/daily-notes/
     git commit -m "Obsidian Sync $current_datetime"
     echo "Changes committed successfully."
+    git push
 else
     echo "No changes to commit."
 fi
