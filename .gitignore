@@ -26,3 +26,4 @@ go.work.sum
 scratch.html
 build
 debugjois.dev
+.DS_Store
