@@ -20,6 +20,27 @@ main {
     padding: 4vw;
 }
 
+.intro {
+    display: flex;
+}
+
+img.avatar {
+    display: block;
+    width:200px;
+    height:200px;
+}
+
+.bio {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-left: 20px;
+}
+
+.bio h3 {
+    margin-top: 0;
+}
+
 h3 {
     font-size: 2rem;
     line-height: 1.2;
