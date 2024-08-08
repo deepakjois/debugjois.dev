@@ -7,11 +7,13 @@ import (
 	"io"
 	"log"
 	"os"
-	"path/filepath"
 	"slices"
 
 	"github.com/bitfield/script"
+	cp "github.com/otiai10/copy"
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/parser"
+	"go.abhg.dev/goldmark/hashtag"
 )
 
 // Page represents the structure of a web page.
@@ -27,6 +29,14 @@ func main() {
 }
 
 func generateSite() error {
+	if err := os.MkdirAll("build/", 0755); err != nil {
+		return fmt.Errorf("create directory: %w", err)
+	}
+
+	if err := cp.Copy("static", "build"); err != nil {
+		return fmt.Errorf("copy static files: %w", err)
+	}
+
 	tmpl, err := template.ParseFiles("templates/shell.html")
 	if err != nil {
 		return fmt.Errorf("parse template: %w", err)
@@ -84,7 +94,16 @@ func convertMarkdownToHTML(filename string, w io.Writer) error {
 		return fmt.Errorf("read file: %w", err)
 	}
 
-	if err := goldmark.Convert(content, w); err != nil {
+	md := goldmark.New(
+		goldmark.WithParserOptions(
+			parser.WithAutoHeadingID(),
+		),
+		goldmark.WithExtensions(
+			&hashtag.Extender{Variant: hashtag.ObsidianVariant},
+		),
+	)
+
+	if err := md.Convert(content, w); err != nil {
 		return fmt.Errorf("convert markdown: %w", err)
 	}
 
@@ -92,10 +111,6 @@ func convertMarkdownToHTML(filename string, w io.Writer) error {
 }
 
 func renderPage(tmpl *template.Template, outputPath string, page Page) error {
-	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
-		return fmt.Errorf("create directory: %w", err)
-	}
-
 	f, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("create file: %w", err)
