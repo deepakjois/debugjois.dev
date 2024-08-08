@@ -60,7 +60,7 @@ func generateIndexPage(tmpl *template.Template) error {
 	}
 
 	page := Page{
-		Title: "Coming Soon",
+		Title: "Deepak Jois",
 		Body:  template.HTML(content),
 	}
 
@@ -81,7 +81,7 @@ func generateDailyNotesPage(tmpl *template.Template) error {
 	}
 
 	page := Page{
-		Title: "Daily Notes",
+		Title: "Deepak Jois · Daily Notes",
 		Body:  template.HTML(buf.String()),
 	}
 

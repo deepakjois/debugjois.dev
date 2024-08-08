@@ -1,0 +1,54 @@
+html {
+    font-size: 15px;
+    text-size-adjust: none;
+}
+
+body {
+    background-color: hsl(150, 5%, 10%);;
+    color: hsl(150, 10%, 80%);
+    font-family: "IBM Plex Mono", Courier, monospace;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    text-wrap: pretty;
+  }
+
+main {
+    margin-inline: auto;
+    max-width: 70ch;
+    padding: 4vw;
+}
+
+h3 {
+    font-size: 2rem;
+    line-height: 1.2;
+}
+
+p {
+    margin: 1.5rem auto;
+}
+
+h3 + p {
+    margin-top: -1.2rem;
+}
+
+hr {
+    border: 1px dashed;
+    margin-block: 3em;
+}
+
+a {
+    /* color: hsl(0, 100%, 100%); */
+    color: #e1adc2;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+}
+
+code, .hashtag {
+    background-color: #272822;
+    border-radius: 0.25em;
+    color: #f8f8f2;
+    padding: 0.05em 0.25em;
+}
