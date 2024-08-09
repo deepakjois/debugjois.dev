@@ -138,15 +138,21 @@ func renderDailyNotesFeed(notes []Note) error {
 		Updated:  time.Now().Format(time.RFC3339),
 	}
 
+	// Load the Asia/Kolkata time zone (IST)
+	ist, err := time.LoadLocation("Asia/Kolkata")
+	if err != nil {
+		return err
+	}
+
 	for _, note := range notes {
-		if note.Date == time.Now().Format("2006-01-02") { // skip today
+		if note.Date == time.Now().In(ist).Format("2006-01-02") { // skip today
 			continue
 		}
 		var updated time.Time
-		if date, err := time.Parse("2006-01-02", note.Date); err != nil {
+		if date, err := time.ParseInLocation("2006-01-02", note.Date, ist); err != nil {
 			return err
 		} else {
-			date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+			date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, ist)
 			updated = date.Add(24 * time.Hour)
 		}
 
