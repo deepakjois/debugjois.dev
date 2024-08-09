@@ -67,22 +67,42 @@ func generateIndexPage(tmpl *template.Template) error {
 	return renderPage(tmpl, "build/index.html", page)
 }
 
+type Note struct {
+	Body template.HTML
+}
+
+type NotesPageData struct {
+	Notes []Note
+}
+
 func generateDailyNotesPage(tmpl *template.Template) error {
 	notes, err := script.ListFiles("content/daily-notes/*.md").Slice()
 	if err != nil {
 		return fmt.Errorf("list daily notes: %w", err)
 	}
 
-	var buf bytes.Buffer
+	var pageNotes []Note
 	for _, note := range slices.Backward(notes) {
+		var buf bytes.Buffer
 		if err := convertMarkdownToHTML(note, &buf); err != nil {
 			return fmt.Errorf("convert note %s: %w", note, err)
 		}
+		pageNotes = append(pageNotes, Note{Body: template.HTML(buf.String())})
+	}
+
+	notesTmpl, err := template.ParseFiles("templates/daily.html")
+	if err != nil {
+		return fmt.Errorf("parse template: %w", err)
+	}
+
+	var notesPage bytes.Buffer
+	if err := notesTmpl.Execute(io.Writer(&notesPage), NotesPageData{Notes: pageNotes}); err != nil {
+		return fmt.Errorf("execute template: %w", err)
 	}
 
 	page := Page{
 		Title: "Deepak Jois · Daily Notes",
-		Body:  template.HTML(buf.String()),
+		Body:  template.HTML(notesPage.String()),
 	}
 
 	return renderPage(tmpl, "build/daily", page)

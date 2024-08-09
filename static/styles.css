@@ -59,11 +59,23 @@ hr {
     margin-block: 3em;
 }
 
+main > hr:last-child {
+    display:none;
+}
+
 a {
     /* color: hsl(0, 100%, 100%); */
     color: #e1adc2;
     text-decoration-thickness: 1px;
     text-underline-offset: 2px;
+}
+
+a.back {
+    text-decoration: none;
+}
+
+a.back:hover {
+    text-decoration: underline;
 }
 
 code, .hashtag {
