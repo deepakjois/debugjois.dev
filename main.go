@@ -56,7 +56,7 @@ func generateSite(md goldmark.Markdown) error {
 		return fmt.Errorf("parse shell template: %w", err)
 	}
 
-	if err := generateIndexPage(md, tmpl); err != nil {
+	if err := generateIndexPage(tmpl); err != nil {
 		return fmt.Errorf("generate index page: %w", err)
 	}
 
@@ -67,7 +67,7 @@ func generateSite(md goldmark.Markdown) error {
 	return nil
 }
 
-func generateIndexPage(md goldmark.Markdown, tmpl *template.Template) error {
+func generateIndexPage(tmpl *template.Template) error {
 	content, err := os.ReadFile("content/index.html")
 	if err != nil {
 		return fmt.Errorf("read index content: %w", err)
