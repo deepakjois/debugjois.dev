@@ -130,11 +130,11 @@ func renderDailyNotesFeed(notes []Note) error {
 	feed := &feeds.AtomFeed{
 		Title:    "Deepak Jois · Daily Log",
 		Subtitle: "Running log of links, code snippets and other miscellany.",
-		Link:     &feeds.AtomLink{Href: "https://debugjois.dev/daily"},
+		Link:     &feeds.AtomLink{Href: "https://www.debugjois.dev/daily"},
 		Author:   &feeds.AtomAuthor{AtomPerson: feeds.AtomPerson{Name: "Deepak Jois", Email: "deepak.jois@gmail.com"}},
-		Logo:     "https://debugjois.dev/android-chrome-512x512.png",
-		Icon:     "https://debugjois.dev/favicon.ico",
-		Id:       "https://debugjois.dev/daily",
+		Logo:     "https://www.debugjois.dev/android-chrome-512x512.png",
+		Icon:     "https://www.debugjois.dev/favicon.ico",
+		Id:       "https://www.debugjois.dev/daily",
 		Updated:  time.Now().Format(time.RFC3339),
 	}
 
@@ -153,7 +153,7 @@ func renderDailyNotesFeed(notes []Note) error {
 		entry := feeds.AtomEntry{
 			Title: note.Date,
 			Links: []feeds.AtomLink{
-				{Href: fmt.Sprintf("https://debugjois.dev/daily#%s", note.Date)},
+				{Href: fmt.Sprintf("https://www.debugjois.dev/daily#%s", note.Date)},
 			},
 			Updated: updated.Format(time.RFC3339),
 			Id:      note.Date,
