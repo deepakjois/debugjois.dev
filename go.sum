@@ -2,6 +2,8 @@ github.com/bitfield/script v0.22.1 h1:DphxoC5ssYciwd0ZS+N0Xae46geAD/0mVWh6a2NUxM
 github.com/bitfield/script v0.22.1/go.mod h1:fv+6x4OzVsRs6qAlc7wiGq8fq1b5orhtQdtW0dwjUHI=
 github.com/forPelevin/gomoji v1.1.3 h1:7c3dYzVmYhpOL3bS4riXqSWJBX3BhSvH68yoNNf3FH0=
 github.com/forPelevin/gomoji v1.1.3/go.mod h1:ypB7Kz3Fsp+LVR7KoT7mEFOioYBuTuAtaAT4RGl+ASY=
+github.com/gorilla/feeds v1.2.0 h1:O6pBiXJ5JHhPvqy53NsjKOThq+dNFm8+DFrxBEdzSCc=
+github.com/gorilla/feeds v1.2.0/go.mod h1:WMib8uJP3BbY+X8Szd1rA5Pzhdfh+HCCAYT2z7Fza6Y=
 github.com/itchyny/gojq v0.12.13 h1:IxyYlHYIlspQHHTE0f3cJF0NKDMfajxViuhBLnHd/QU=
 github.com/itchyny/gojq v0.12.13/go.mod h1:JzwzAqenfhrPUuwbmEz3nu3JQmFLlQTQMUcOdnu/Sf4=
 github.com/itchyny/timefmt-go v0.1.5 h1:G0INE2la8S6ru/ZI5JecgyzbbJNs5lG1RcBqa7Jm6GE=

@@ -7,9 +7,13 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"sort"
+	"strings"
+	"time"
 
 	"github.com/bitfield/script"
+	"github.com/gorilla/feeds"
 	"github.com/otiai10/copy"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/parser"
@@ -25,6 +29,7 @@ type Page struct {
 // Note represents a single daily note.
 type Note struct {
 	Body template.HTML
+	Date string
 }
 
 func main() {
@@ -95,7 +100,8 @@ func generateDailyNotesPage(md goldmark.Markdown, tmpl *template.Template) error
 		if err := convertMarkdownToHTML(md, file, &buf); err != nil {
 			return fmt.Errorf("convert note %s: %w", file, err)
 		}
-		notes = append(notes, Note{Body: template.HTML(buf.String())})
+		date := strings.TrimSuffix(filepath.Base(file), ".md")
+		notes = append(notes, Note{Body: template.HTML(buf.String()), Date: date})
 	}
 
 	ntmpl, err := template.ParseFiles("templates/daily.html")
@@ -113,7 +119,58 @@ func generateDailyNotesPage(md goldmark.Markdown, tmpl *template.Template) error
 		Body:  template.HTML(buf.String()),
 	}
 
-	return renderPage(tmpl, "build/daily", page)
+	if err := renderPage(tmpl, "build/daily", page); err != nil {
+		return err
+	}
+
+	return renderDailyNotesFeed(notes)
+}
+
+func renderDailyNotesFeed(notes []Note) error {
+	feed := &feeds.AtomFeed{
+		Title:    "Deepak Jois · Daily Log",
+		Subtitle: "Running log of links, code snippets and other miscellany.",
+		Link:     &feeds.AtomLink{Href: "https://debugjois.dev/daily"},
+		Author:   &feeds.AtomAuthor{AtomPerson: feeds.AtomPerson{Name: "Deepak Jois", Email: "deepak.jois@gmail.com"}},
+		Logo:     "https://debugjois.dev/android-chrome-512x512.png",
+		Icon:     "https://debugjois.dev/favicon.ico",
+		Id:       "https://debugjois.dev/daily",
+		Updated:  time.Now().Format(time.RFC3339),
+	}
+
+	for _, note := range notes {
+		if note.Date == time.Now().Format("2006-01-02") { // skip today
+			continue
+		}
+		var updated time.Time
+		if date, err := time.Parse("2006-01-02", note.Date); err != nil {
+			return err
+		} else {
+			date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+			updated = date.Add(24 * time.Hour)
+		}
+
+		entry := feeds.AtomEntry{
+			Title: note.Date,
+			Links: []feeds.AtomLink{
+				{Href: fmt.Sprintf("https://debugjois.dev/daily#%s", note.Date)},
+			},
+			Updated: updated.Format(time.RFC3339),
+			Id:      note.Date,
+			Author:  &feeds.AtomAuthor{AtomPerson: feeds.AtomPerson{Name: "Deepak Jois"}},
+			Content: &feeds.AtomContent{Content: string(note.Body), Type: "html"},
+		}
+		feed.Entries = append(feed.Entries, &entry)
+	}
+
+	f, err := os.Create("build/daily.xml")
+	if err != nil {
+		return fmt.Errorf("create atom file: %w", err)
+	}
+	defer f.Close()
+
+	return feeds.WriteXML(feed, f)
+
 }
 
 func convertMarkdownToHTML(md goldmark.Markdown, filename string, w io.Writer) error {
