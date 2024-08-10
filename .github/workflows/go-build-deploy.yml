@@ -6,8 +6,8 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  schedule: # everyday at 0531 UTC or 0001 IST
-    - cron: '31 5 * * *'
+  schedule: # everyday at 1831 UTC or 0001 IST
+    - cron: '31 18 * * *'
 
 jobs:
   build-and-deploy:
