@@ -23,7 +23,7 @@ go.work.sum
 
 # env file
 .env
-scratch.html
+scratch.*
 build
 debugjois.dev
 .DS_Store
