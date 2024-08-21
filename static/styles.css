@@ -94,3 +94,9 @@ pre code {
     border-radius: 0.5em;
     overflow-x: auto;
 }
+
+blockquote {
+    background-color: #272822;
+    padding: 0.5em 1em;
+    border-left: 1px solid #444;
+}
