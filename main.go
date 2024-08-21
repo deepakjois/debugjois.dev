@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"html/template"
 	"io"
@@ -32,7 +33,11 @@ type Note struct {
 	Date string
 }
 
+var dev = flag.Bool("dev", false, "Enable development mode")
+
 func main() {
+	flag.Parse()
+
 	md := goldmark.New(
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
@@ -69,6 +74,11 @@ func generateSite(md goldmark.Markdown) error {
 		return fmt.Errorf("generate daily notes page: %w", err)
 	}
 
+	if *dev {
+		if err := generateScratchPage(md, tmpl); err != nil {
+			return fmt.Errorf("generate scratch page: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -124,6 +134,20 @@ func generateDailyNotesPage(md goldmark.Markdown, tmpl *template.Template) error
 	}
 
 	return renderDailyNotesFeed(notes)
+}
+
+func generateScratchPage(md goldmark.Markdown, tmpl *template.Template) error {
+	var buf bytes.Buffer
+	if err := convertMarkdownToHTML(md, "content/scratch.md", &buf); err != nil {
+		return fmt.Errorf("convert scratch: %w", err)
+	}
+
+	page := Page{
+		Title: "Scratch",
+		Body:  template.HTML(buf.String()),
+	}
+
+	return renderPage(tmpl, "build/scratch", page)
 }
 
 func renderDailyNotesFeed(notes []Note) error {
