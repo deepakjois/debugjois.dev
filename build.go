@@ -182,8 +182,13 @@ func generateDailyNotesArchive(tmpl *template.Template, notes []*Note, rebuild b
 		if err := ntmpl.Execute(&buf, struct{ Notes []*Note }{Notes: month.Notes}); err != nil {
 			return fmt.Errorf("execute daily notes template: %w", err)
 		}
+
+		// Format month
+		t, _ := time.Parse("2006-01", month.Month)
+		s := t.Format("Jan 2006")
+
 		page := Page{
-			Title: "Deepak Jois · Daily Notes " + month.Month, // FIXME parse month name
+			Title: "Deepak Jois · Daily Notes " + s,
 			Body:  template.HTML(buf.String()),
 		}
 
