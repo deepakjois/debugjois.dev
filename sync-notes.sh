@@ -14,6 +14,9 @@ if [[ -z "$OBSIDIAN_REPO" ]]; then
     exit 1
 fi
 
+# Update repo
+git pull
+
 # Rsync contents
 rsync -au --out-format="%n" "$OBSIDIAN_REPO/daily/" content/daily-notes/
 
