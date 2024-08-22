@@ -5,7 +5,6 @@ go 1.23
 require (
 	github.com/alecthomas/kong v0.9.0
 	github.com/bitfield/script v0.22.1
-	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gorilla/feeds v1.2.0
 	github.com/otiai10/copy v1.14.0
 	github.com/yuin/goldmark v1.7.4

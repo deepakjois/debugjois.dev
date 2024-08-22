@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -13,7 +12,6 @@ import (
 	"time"
 
 	"github.com/bitfield/script"
-	"github.com/fsnotify/fsnotify"
 	"github.com/gorilla/feeds"
 	"github.com/otiai10/copy"
 	"github.com/yuin/goldmark"
@@ -22,9 +20,8 @@ import (
 )
 
 type BuildCmd struct {
-	Watch bool `help:"Watch for file changes and rebuild" default:"false"`
-	Dev   bool `help:"Run in dev mode, which compiles scratch file and drafts" default:"false"`
-	md    goldmark.Markdown
+	Dev bool `help:"Run in dev mode, which compiles scratch file and drafts" default:"false"`
+	md  goldmark.Markdown
 }
 
 func (b *BuildCmd) Run() error {
@@ -36,51 +33,7 @@ func (b *BuildCmd) Run() error {
 			&hashtag.Extender{Variant: hashtag.ObsidianVariant},
 		),
 	)
-	if !b.Watch {
-		return b.generateSite()
-	}
-
-	if watcher, err := fsnotify.NewWatcher(); err != nil {
-		return err
-	} else {
-		defer watcher.Close()
-
-		done := make(chan bool)
-		go func() {
-			for {
-				select {
-				case event, ok := <-watcher.Events:
-					if !ok {
-						return
-					}
-					if event.Op&fsnotify.Write == fsnotify.Write {
-						fmt.Println("Modified file:", event.Name)
-						err := b.generateSite()
-						if err != nil {
-							fmt.Printf("Build failed: %v\n", err)
-						}
-					}
-				case err, ok := <-watcher.Errors:
-					if !ok {
-						return
-					}
-					log.Println("Error:", err)
-				}
-			}
-		}()
-
-		for _, path := range []string{"content", "static", "templates"} {
-			err := watcher.Add(path)
-			if err != nil {
-				return fmt.Errorf("error adding directory to watch: %v", err)
-			}
-
-		}
-		fmt.Println("Watching for file changes. Press Ctrl+C to stop.")
-		<-done
-	}
-
-	return nil
+	return b.generateSite()
 }
 
 // Page represents the structure of a web page.
