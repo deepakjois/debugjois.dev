@@ -21,8 +21,9 @@ import (
 )
 
 type BuildCmd struct {
-	Dev bool `help:"Run in dev mode, which compiles scratch file and drafts" default:"false"`
-	md  goldmark.Markdown
+	Dev     bool `help:"Run in dev mode, which compiles scratch file and drafts" default:"false"`
+	Rebuild bool `help:"Rebuild the entire archive" default:"false"`
+	md      goldmark.Markdown
 }
 
 func (b *BuildCmd) Run() error {
@@ -76,7 +77,7 @@ func (b *BuildCmd) generateSite() error {
 		return fmt.Errorf("generate daily notes page: %w", err)
 	}
 
-	if err := generateDailyNotesArchive(tmpl, notes); err != nil {
+	if err := generateDailyNotesArchive(tmpl, notes, b.Rebuild); err != nil {
 		return fmt.Errorf("generate daily notes archive page: %w", err)
 	}
 
@@ -144,7 +145,7 @@ func generateDailyNotesPage(tmpl *template.Template, notes []*Note) error {
 	return renderDailyNotesFeed(notes)
 }
 
-func generateDailyNotesArchive(tmpl *template.Template, notes []*Note) error {
+func generateDailyNotesArchive(tmpl *template.Template, notes []*Note, rebuild bool) error {
 	type GroupedNotes struct {
 		Month string
 		Notes []*Note
@@ -166,12 +167,14 @@ func generateDailyNotesArchive(tmpl *template.Template, notes []*Note) error {
 		return months[i].Month > months[j].Month
 	})
 
-	// TODO optimise by building only the last months, unless full rebuild is
-	// explicitly requested
-
 	ntmpl, err := template.ParseFiles("templates/daily.html")
 	if err != nil {
 		return fmt.Errorf("parse daily notes template: %w", err)
+	}
+
+	// prune to last two months unless rebuild is explicitly requested
+	if !rebuild {
+		months = lo.Slice(months, 0, 2)
 	}
 
 	for _, month := range months {
