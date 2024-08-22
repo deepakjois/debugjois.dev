@@ -50,6 +50,12 @@ type Note struct {
 	Date string
 }
 
+// GroupedNotes represents a list of notes grouped by month
+type GroupedNotes struct {
+	Month string
+	Notes []*Note
+}
+
 func (b *BuildCmd) generateSite() error {
 	if err := os.MkdirAll("build", 0755); err != nil {
 		return fmt.Errorf("create build directory: %w", err)
@@ -78,6 +84,10 @@ func (b *BuildCmd) generateSite() error {
 	}
 
 	if err := generateDailyNotesArchive(tmpl, notes, b.Rebuild); err != nil {
+		return fmt.Errorf("generate daily notes archive page: %w", err)
+	}
+
+	if err := generateDailyNotesArchiveIndex(tmpl, notes); err != nil {
 		return fmt.Errorf("generate daily notes archive page: %w", err)
 	}
 
@@ -123,6 +133,26 @@ func getAllNotes(md goldmark.Markdown) (notes []*Note, err error) {
 	return notes, nil
 }
 
+// Group and sort notes by YYYY-MM
+func groupAllNotes(notes []*Note) []GroupedNotes {
+	groups := lo.GroupBy(notes, func(n *Note) string {
+		return n.Date[0:7]
+	})
+
+	months := lo.MapToSlice(groups, func(key string, value []*Note) GroupedNotes {
+		return GroupedNotes{
+			Month: key,
+			Notes: value,
+		}
+	})
+
+	sort.Slice(months, func(i, j int) bool {
+		return months[i].Month > months[j].Month
+	})
+
+	return months
+}
+
 func generateDailyNotesPage(tmpl *template.Template, notes []*Note) error {
 	var buf bytes.Buffer
 	if err := tmpl.ExecuteTemplate(&buf, "daily.html", struct{ Notes []*Note }{Notes: lo.Slice(notes, 0, 31)}); err != nil {
@@ -141,46 +171,24 @@ func generateDailyNotesPage(tmpl *template.Template, notes []*Note) error {
 }
 
 func generateDailyNotesArchive(tmpl *template.Template, notes []*Note, rebuild bool) error {
-	type GroupedNotes struct {
-		Month string
-		Notes []*Note
-	}
-
-	// Group and sort notes by YYYY-MM
-	groups := lo.GroupBy(notes, func(n *Note) string {
-		return n.Date[0:7]
-	})
-
-	months := lo.MapToSlice(groups, func(key string, value []*Note) GroupedNotes {
-		return GroupedNotes{
-			Month: key,
-			Notes: value,
-		}
-	})
-
-	sort.Slice(months, func(i, j int) bool {
-		return months[i].Month > months[j].Month
-	})
+	grouped := groupAllNotes(notes)
 
 	// prune to last two months unless rebuild is explicitly requested
 	if !rebuild {
-		months = lo.Slice(months, 0, 2)
+		grouped = lo.Slice(grouped, 0, 2)
 	}
 
-	for _, month := range months {
+	for _, month := range grouped {
 		// Format month
 		t, _ := time.Parse("2006-01", month.Month)
 		s := t.Format("Jan 2006")
 
 		var buf bytes.Buffer
-		if err := tmpl.ExecuteTemplate(&buf, "archive.html", struct {
-			Notes []*Note
-			Month string
-		}{
+		if err := tmpl.ExecuteTemplate(&buf, "daily-archive.html", GroupedNotes{
 			Notes: month.Notes,
 			Month: s,
 		}); err != nil {
-			return fmt.Errorf("execute daily notes template: %w", err)
+			return fmt.Errorf("execute daily notes archive template: %w", err)
 		}
 
 		page := Page{
@@ -194,6 +202,63 @@ func generateDailyNotesArchive(tmpl *template.Template, notes []*Note, rebuild b
 	}
 
 	return nil
+}
+
+func generateDailyNotesArchiveIndex(tmpl *template.Template, notes []*Note) error {
+	grouped := groupAllNotes(notes)
+
+	type CalEntry struct {
+		Link bool
+		Day  string
+	}
+
+	type Month struct {
+		Entries     []CalEntry
+		DisplayName string
+		Slug        string
+	}
+
+	var months []Month
+
+	for _, m := range grouped {
+		t, _ := time.Parse("2006-01", m.Month)
+		grid := make([]CalEntry, 42)
+		idx := t.Weekday()
+		currDay := t
+		for {
+			entry := CalEntry{Day: fmt.Sprintf("%02d", currDay.Day())}
+			// check if there is an entry for the day
+			entry.Link = lo.ContainsBy(m.Notes, func(n *Note) bool {
+				return n.Date == fmt.Sprintf("%s-%02d", m.Month, currDay.Day())
+			})
+			grid[idx] = entry
+
+			idx = idx + 1
+			currDay = currDay.AddDate(0, 0, 1)
+
+			if currDay.Month() > t.Month() {
+				break
+			}
+		}
+
+		months = append(months, Month{
+			Entries:     grid,
+			DisplayName: t.Format("Jan 2006"),
+			Slug:        m.Month,
+		})
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&buf, "daily-archive-index.html", struct{ Months []Month }{months}); err != nil {
+		return fmt.Errorf("execute daily notes archive index template: %w", err)
+	}
+
+	page := Page{
+		Title: "Deepak Jois · Daily Notes Archive Index",
+		Body:  template.HTML(buf.String()),
+	}
+
+	return renderPage(tmpl, "build/daily-archive-index", page)
 }
 
 func generateScratchPage(md goldmark.Markdown, tmpl *template.Template) error {

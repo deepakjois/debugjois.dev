@@ -1,0 +1,25 @@
+<div class="calendar-container">
+    {{range $month := .Months}}
+    <div class="month">
+        <div class="month-header"><h3>{{$month.DisplayName}}</h3></div>
+        <div class="days">
+            <div class="day"><span class="weekday">Su</span></div>
+            <div class="day"><span class="weekday">Mo</span></div>
+            <div class="day"><span class="weekday">Tu</span></div>
+            <div class="day"><span class="weekday">We</span></div>
+            <div class="day"><span class="weekday">Th</span></div>
+            <div class="day"><span class="weekday">Fr</span></div>
+            <div class="day"><span class="weekday">Sa</span></div>
+            {{- range $entry := .Entries }}
+            <div class="day">
+            {{- if .Link -}}
+                <a href="/daily-archive-{{$month.Slug}}#{{$month.Slug}}-{{$entry.Day}}">{{$entry.Day}}</a>
+            {{- else -}}
+                 {{- $entry.Day -}}
+            {{- end -}}
+            </div>
+            {{- end }}
+        </div>
+    </div>
+    {{ end }}
+</div>

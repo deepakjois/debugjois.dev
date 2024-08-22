@@ -100,3 +100,50 @@ blockquote {
     padding: 0.5em 1em;
     border-left: 1px solid #444;
 }
+
+.calendar-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    justify-content: center;
+}
+
+.month {
+    background-color: #272822;
+    border-radius: 0.5em;
+    padding: 1rem;
+    min-width: 75%;
+}
+
+.month-header {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.5rem;
+    text-align: center;
+}
+
+.day {
+    padding: 0.25rem;
+}
+
+.weekday {
+    font-weight: bold;
+}
+
+.day a {
+    display: block;
+    text-decoration: none;
+    color: #E2725B;
+    background-color: hsl(150, 5%, 15%);
+    border-radius: 0.25em;
+    transition: background-color 0.3s ease;
+}
+
+.day a:hover {
+    background-color: hsl(150, 5%, 20%);
+}
