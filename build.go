@@ -14,6 +14,7 @@ import (
 	"github.com/bitfield/script"
 	"github.com/gorilla/feeds"
 	"github.com/otiai10/copy"
+	lo "github.com/samber/lo"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/parser"
 	"go.abhg.dev/goldmark/hashtag"
@@ -66,8 +67,17 @@ func (b *BuildCmd) generateSite() error {
 		return fmt.Errorf("generate index page: %w", err)
 	}
 
-	if err := generateDailyNotesPage(b.md, tmpl); err != nil {
+	notes, err := getAllNotes(b.md)
+	if err != nil {
+		return fmt.Errorf("get all notes: %w", err)
+	}
+
+	if err := generateDailyNotesPage(tmpl, lo.Slice(notes, 0, 31)); err != nil {
 		return fmt.Errorf("generate daily notes page: %w", err)
+	}
+
+	if err := generateDailyNotesArchive(tmpl, notes); err != nil {
+		return fmt.Errorf("generate daily notes archive page: %w", err)
 	}
 
 	if b.Dev {
@@ -93,34 +103,35 @@ func generateIndexPage(tmpl *template.Template) error {
 	return renderPage(tmpl, "build/index.html", page)
 }
 
-func generateDailyNotesPage(md goldmark.Markdown, tmpl *template.Template) error {
+func getAllNotes(md goldmark.Markdown) (notes []*Note, err error) {
 	files, err := script.ListFiles("content/daily-notes/*.md").Slice()
 	if err != nil {
-		return fmt.Errorf("list daily notes: %w", err)
+		return nil, fmt.Errorf("list daily notes: %w", err)
 	}
 
 	sort.Sort(sort.Reverse(sort.StringSlice(files)))
 
-	var notes []Note
 	for _, file := range files {
 		var buf bytes.Buffer
 		if err := convertMarkdownToHTML(md, file, &buf); err != nil {
-			return fmt.Errorf("convert note %s: %w", file, err)
+			return nil, fmt.Errorf("convert note %s: %w", file, err)
 		}
 		date := strings.TrimSuffix(filepath.Base(file), ".md")
-		notes = append(notes, Note{Body: template.HTML(buf.String()), Date: date})
+		notes = append(notes, &Note{Body: template.HTML(buf.String()), Date: date})
 	}
+	return notes, nil
+}
 
+func generateDailyNotesPage(tmpl *template.Template, notes []*Note) error {
 	ntmpl, err := template.ParseFiles("templates/daily.html")
 	if err != nil {
 		return fmt.Errorf("parse daily notes template: %w", err)
 	}
 
 	var buf bytes.Buffer
-	if err := ntmpl.Execute(&buf, struct{ Notes []Note }{Notes: notes}); err != nil {
+	if err := ntmpl.Execute(&buf, struct{ Notes []*Note }{Notes: lo.Slice(notes, 0, 31)}); err != nil {
 		return fmt.Errorf("execute daily notes template: %w", err)
 	}
-
 	page := Page{
 		Title: "Deepak Jois · Daily Notes",
 		Body:  template.HTML(buf.String()),
@@ -131,6 +142,54 @@ func generateDailyNotesPage(md goldmark.Markdown, tmpl *template.Template) error
 	}
 
 	return renderDailyNotesFeed(notes)
+}
+
+func generateDailyNotesArchive(tmpl *template.Template, notes []*Note) error {
+	type GroupedNotes struct {
+		Month string
+		Notes []*Note
+	}
+
+	// Group and sort notes by YYYY-MM
+	groups := lo.GroupBy(notes, func(n *Note) string {
+		return n.Date[0:7]
+	})
+
+	months := lo.MapToSlice(groups, func(key string, value []*Note) GroupedNotes {
+		return GroupedNotes{
+			Month: key,
+			Notes: value,
+		}
+	})
+
+	sort.Slice(months, func(i, j int) bool {
+		return months[i].Month > months[j].Month
+	})
+
+	// TODO optimise by building only the last months, unless full rebuild is
+	// explicitly requested
+
+	ntmpl, err := template.ParseFiles("templates/daily.html")
+	if err != nil {
+		return fmt.Errorf("parse daily notes template: %w", err)
+	}
+
+	for _, month := range months {
+		var buf bytes.Buffer
+		if err := ntmpl.Execute(&buf, struct{ Notes []*Note }{Notes: month.Notes}); err != nil {
+			return fmt.Errorf("execute daily notes template: %w", err)
+		}
+		page := Page{
+			Title: "Deepak Jois · Daily Notes " + month.Month, // FIXME parse month name
+			Body:  template.HTML(buf.String()),
+		}
+
+		if err := renderPage(tmpl, fmt.Sprintf("build/daily-archive-%s", month.Month), page); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func generateScratchPage(md goldmark.Markdown, tmpl *template.Template) error {
@@ -147,7 +206,7 @@ func generateScratchPage(md goldmark.Markdown, tmpl *template.Template) error {
 	return renderPage(tmpl, "build/scratch", page)
 }
 
-func renderDailyNotesFeed(notes []Note) error {
+func renderDailyNotesFeed(notes []*Note) error {
 	feed := &feeds.AtomFeed{
 		Title:    "Deepak Jois · Daily Log",
 		Subtitle: "Running log of links, code snippets and other miscellany.",
@@ -197,7 +256,6 @@ func renderDailyNotesFeed(notes []Note) error {
 	defer f.Close()
 
 	return feeds.WriteXML(feed, f)
-
 }
 
 func convertMarkdownToHTML(md goldmark.Markdown, filename string, w io.Writer) error {
