@@ -83,11 +83,13 @@ func (b *BuildCmd) generateSite() error {
 		return fmt.Errorf("generate daily notes page: %w", err)
 	}
 
-	if err := generateDailyNotesArchive(tmpl, notes, b.Rebuild); err != nil {
+	grouped := groupAllNotes(notes)
+
+	if err := generateDailyNotesArchive(tmpl, grouped, b.Rebuild); err != nil {
 		return fmt.Errorf("generate daily notes archive page: %w", err)
 	}
 
-	if err := generateDailyNotesArchiveIndex(tmpl, notes); err != nil {
+	if err := generateDailyNotesArchiveIndex(tmpl, grouped); err != nil {
 		return fmt.Errorf("generate daily notes archive page: %w", err)
 	}
 
@@ -170,9 +172,7 @@ func generateDailyNotesPage(tmpl *template.Template, notes []*Note) error {
 	return renderDailyNotesFeed(notes)
 }
 
-func generateDailyNotesArchive(tmpl *template.Template, notes []*Note, rebuild bool) error {
-	grouped := groupAllNotes(notes)
-
+func generateDailyNotesArchive(tmpl *template.Template, grouped []GroupedNotes, rebuild bool) error {
 	// prune to last two months unless rebuild is explicitly requested
 	if !rebuild {
 		grouped = lo.Slice(grouped, 0, 2)
@@ -204,9 +204,7 @@ func generateDailyNotesArchive(tmpl *template.Template, notes []*Note, rebuild b
 	return nil
 }
 
-func generateDailyNotesArchiveIndex(tmpl *template.Template, notes []*Note) error {
-	grouped := groupAllNotes(notes)
-
+func generateDailyNotesArchiveIndex(tmpl *template.Template, grouped []GroupedNotes) error {
 	type CalEntry struct {
 		Link bool
 		Day  string
