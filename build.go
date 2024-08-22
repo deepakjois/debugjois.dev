@@ -59,7 +59,7 @@ func (b *BuildCmd) generateSite() error {
 		return fmt.Errorf("copy static files: %w", err)
 	}
 
-	tmpl, err := template.ParseFiles("templates/shell.html")
+	tmpl, err := template.ParseGlob("templates/*.html")
 	if err != nil {
 		return fmt.Errorf("parse shell template: %w", err)
 	}
@@ -124,13 +124,8 @@ func getAllNotes(md goldmark.Markdown) (notes []*Note, err error) {
 }
 
 func generateDailyNotesPage(tmpl *template.Template, notes []*Note) error {
-	ntmpl, err := template.ParseFiles("templates/daily.html")
-	if err != nil {
-		return fmt.Errorf("parse daily notes template: %w", err)
-	}
-
 	var buf bytes.Buffer
-	if err := ntmpl.Execute(&buf, struct{ Notes []*Note }{Notes: lo.Slice(notes, 0, 31)}); err != nil {
+	if err := tmpl.ExecuteTemplate(&buf, "daily.html", struct{ Notes []*Note }{Notes: lo.Slice(notes, 0, 31)}); err != nil {
 		return fmt.Errorf("execute daily notes template: %w", err)
 	}
 	page := Page{
@@ -167,25 +162,26 @@ func generateDailyNotesArchive(tmpl *template.Template, notes []*Note, rebuild b
 		return months[i].Month > months[j].Month
 	})
 
-	ntmpl, err := template.ParseFiles("templates/daily.html")
-	if err != nil {
-		return fmt.Errorf("parse daily notes template: %w", err)
-	}
-
 	// prune to last two months unless rebuild is explicitly requested
 	if !rebuild {
 		months = lo.Slice(months, 0, 2)
 	}
 
 	for _, month := range months {
-		var buf bytes.Buffer
-		if err := ntmpl.Execute(&buf, struct{ Notes []*Note }{Notes: month.Notes}); err != nil {
-			return fmt.Errorf("execute daily notes template: %w", err)
-		}
-
 		// Format month
 		t, _ := time.Parse("2006-01", month.Month)
 		s := t.Format("Jan 2006")
+
+		var buf bytes.Buffer
+		if err := tmpl.ExecuteTemplate(&buf, "archive.html", struct {
+			Notes []*Note
+			Month string
+		}{
+			Notes: month.Notes,
+			Month: s,
+		}); err != nil {
+			return fmt.Errorf("execute daily notes template: %w", err)
+		}
 
 		page := Page{
 			Title: "Deepak Jois · Daily Notes " + s,
@@ -286,7 +282,7 @@ func renderPage(tmpl *template.Template, outputPath string, page Page) error {
 	}
 	defer f.Close()
 
-	if err := tmpl.Execute(f, page); err != nil {
+	if err := tmpl.ExecuteTemplate(f, "shell.html", page); err != nil {
 		return fmt.Errorf("execute page template: %w", err)
 	}
 

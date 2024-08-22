@@ -1,6 +1,3 @@
-<p><a href="/" class="back">← Back</a></p>
-<p>You can read the daily log below, or with the <a href="/daily.xml">Atom feed</a>.</p>
-{{range .Notes}}
-{{.Body}}
-<hr>
-{{end}}
+<p><a href="/" class="back">← Home</a></p>
+<p>You can read the daily log for the last few days below, or with the <a href="/daily.xml">Atom feed</a>. Browse the <a href="/daily-archive-index">archives</a> for more.</p>
+{{template "notes.html" .}}
