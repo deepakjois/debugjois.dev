@@ -30,6 +30,13 @@ img.avatar {
     height:200px;
 }
 
+img:not(.avatar) {
+    max-width: 70%;
+    height: auto;
+    display: block;
+    margin: 1rem auto;
+}
+
 .bio {
     display: flex;
     flex-direction: column;
