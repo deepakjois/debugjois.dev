@@ -5,7 +5,8 @@ import (
 )
 
 var CLI struct {
-	Build BuildCmd `cmd:"" help:"Build the static site"`
+	Build     BuildCmd     `cmd:"" help:"Build the static site"`
+	SyncNotes SyncNotesCmd `cmd:"" help:"Sync daily notes from Obsidian vault"`
 }
 
 func main() {
