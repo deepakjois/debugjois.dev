@@ -33,6 +33,7 @@ func (b *BuildCmd) Run() error {
 		),
 		goldmark.WithExtensions(
 			&hashtag.Extender{Variant: hashtag.ObsidianVariant},
+			&ObsidianImageExtender{ImagePath: "/images/"},
 		),
 	)
 	return b.generateSite()
@@ -57,12 +58,16 @@ type GroupedNotes struct {
 }
 
 func (b *BuildCmd) generateSite() error {
-	if err := os.MkdirAll("build", 0755); err != nil {
+	if err := os.MkdirAll("build/images", 0755); err != nil {
 		return fmt.Errorf("create build directory: %w", err)
 	}
 
 	if err := copy.Copy("static", "build"); err != nil {
 		return fmt.Errorf("copy static files: %w", err)
+	}
+
+	if err := copy.Copy("content/daily-notes/attachments", "build/images"); err != nil {
+		return fmt.Errorf("copy attachments: %w", err)
 	}
 
 	tmpl, err := template.ParseGlob("templates/*.html")

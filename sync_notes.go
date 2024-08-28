@@ -30,8 +30,9 @@ func (sn *SyncNotesCmd) Run() error {
 	}
 
 	// rsync contents
-	if _, err := script.Exec(fmt.Sprintf("rsync -au --out-format='%%n' '%s/daily/' content/daily-notes/", sn.ObsidianVault)).Stdout(); err != nil {
-		return fmt.Errorf("failed to rsync contents: %w", err)
+	rsyncCmd := fmt.Sprintf("rsync -au --delete --out-format='%%n' '%s/daily/' content/daily-notes/", sn.ObsidianVault)
+	if _, err := script.Exec(rsyncCmd).Stdout(); err != nil {
+		return fmt.Errorf("failed to execute rsync command: %w", err)
 	}
 
 	// Check if there are changes
