@@ -31,4 +31,7 @@ for file in "$LOCAL_FOLDER"/*; do
     fi
 done
 
+# Sync the images folder
+aws s3 sync --dryrun "build/images" "s3://$S3_BUCKET/images"
+
 echo "Upload complete!"
