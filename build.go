@@ -34,6 +34,7 @@ func (b *BuildCmd) Run() error {
 		goldmark.WithExtensions(
 			&hashtag.Extender{Variant: hashtag.ObsidianVariant},
 			&ObsidianImageExtender{ImagePath: "/images/"},
+			&ObsidianEmbedExtender{},
 		),
 	)
 	return b.generateSite()
