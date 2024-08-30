@@ -4,8 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
   schedule: # everyday at 1831 UTC or 0001 IST
     - cron: '31 18 * * *'
 
@@ -34,4 +32,4 @@ jobs:
         aws-region: us-east-2
 
     - name: Upload to S3
-      run: ./upload.sh
+      run: ./debugjois.dev upload
