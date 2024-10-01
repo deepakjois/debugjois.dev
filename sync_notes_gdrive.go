@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
@@ -60,11 +61,11 @@ func (cmd *SyncNotesGdriveCmd) syncFolder(ctx context.Context, drv *drive.Servic
 					return err
 				}
 			} else {
-				if cmd.needsSync(localPath, f.Md5Checksum) {
-					if err := cmd.downloadFile(ctx, drv, f.Id, localPath); err != nil {
+				if needsSync(localPath, f.Md5Checksum) {
+					if err := downloadFile(drv, f.Id, localPath); err != nil {
 						return fmt.Errorf("failed to download file %s: %w", f.Name, err)
 					}
-					fmt.Printf("Synced: %s\n", localPath)
+					fmt.Println(strings.TrimPrefix(localPath, "content/daily-notes/"))
 				}
 			}
 		}
@@ -78,12 +79,12 @@ func (cmd *SyncNotesGdriveCmd) syncFolder(ctx context.Context, drv *drive.Servic
 	return nil
 }
 
-func (cmd *SyncNotesGdriveCmd) needsSync(path, remoteMD5 string) bool {
+func needsSync(path, remoteMD5 string) bool {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return true
 	}
 
-	localMD5, err := cmd.calculateMD5(path)
+	localMD5, err := calculateMD5(path)
 	if err != nil {
 		return true
 	}
@@ -91,7 +92,7 @@ func (cmd *SyncNotesGdriveCmd) needsSync(path, remoteMD5 string) bool {
 	return localMD5 != remoteMD5
 }
 
-func (cmd *SyncNotesGdriveCmd) calculateMD5(path string) (string, error) {
+func calculateMD5(path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return "", err
@@ -106,7 +107,7 @@ func (cmd *SyncNotesGdriveCmd) calculateMD5(path string) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-func (cmd *SyncNotesGdriveCmd) downloadFile(ctx context.Context, srv *drive.Service, fileID, path string) error {
+func downloadFile(srv *drive.Service, fileID, path string) error {
 	resp, err := srv.Files.Get(fileID).Download()
 	if err != nil {
 		return err
