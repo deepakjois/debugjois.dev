@@ -7,12 +7,12 @@ import (
 	"github.com/bitfield/script"
 )
 
-type SyncNotesCmd struct {
+type SyncNotesObsidianCmd struct {
 	ObsidianVault string `env:"OBSIDIAN_VAULT" required:"true" help:"Path to Obsidian vault containing the notes"`
 	NoGit         bool   `help:"Skip git operations and only run rsync"`
 }
 
-func (sn *SyncNotesCmd) Run() error {
+func (sn *SyncNotesObsidianCmd) Run() error {
 	// Check if ObsidianVault is set
 	if sn.ObsidianVault == "" {
 		return fmt.Errorf("vault is not set")

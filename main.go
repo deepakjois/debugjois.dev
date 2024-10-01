@@ -5,10 +5,10 @@ import (
 )
 
 var CLI struct {
-	Build           BuildCmd           `cmd:"" help:"Build the static site"`
-	SyncNotes       SyncNotesCmd       `cmd:"" help:"Sync daily notes from Obsidian vault"`
-	Upload          UploadCmd          `cmd:"" help:"Upload files to S3 bucket"`
-	SyncNotesGdrive SyncNotesGdriveCmd `cmd:"" help:"Sync daily notes from Google Drive"`
+	Build             BuildCmd             `cmd:"" help:"Build the static site"`
+	SyncNotesObsidian SyncNotesObsidianCmd `cmd:"" help:"Sync daily notes from Obsidian vault"`
+	SyncNotesGdrive   SyncNotesGdriveCmd   `cmd:"" help:"Sync daily notes from Google Drive"`
+	Upload            UploadCmd            `cmd:"" help:"Upload files to S3 bucket"`
 }
 
 func main() {
