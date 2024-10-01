@@ -27,3 +27,4 @@ scratch.*
 build
 debugjois.dev
 .DS_Store
+credentials.json
