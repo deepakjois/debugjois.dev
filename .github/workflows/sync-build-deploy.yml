@@ -32,7 +32,12 @@ jobs:
         ./debugjois.dev sync-notes-gdrive --creds credentials.json --folder-id $GDRIVE_FOLDER_ID
       env:
         GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
-        
+
+    - name: Commit to Github Repo
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: "GDrive Obsidian Vault Sync"
+
     - name: Run
       run: ./debugjois.dev build
 
