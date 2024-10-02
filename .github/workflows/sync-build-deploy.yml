@@ -1,0 +1,47 @@
+name: Go Build and Deploy
+
+on:
+  workflow_dispatch:
+#  push:
+#    branches: [ main ]
+#  schedule: # everyday at 1831 UTC or 0001 IST
+#    - cron: '31 18 * * *'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Build
+      run: go build ./...
+
+    - name: Create credentials.json
+      run: |
+        echo $GDRIVE_CREDENTIALS > credentials.json
+      env:
+        GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }}
+
+    - name: Sync from GDrive
+      run: |
+        ./debugjois.dev sync-notes-gdrive --creds credentials.json --folder-id $GDRIVE_FOLDER_ID
+      env:
+        GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+        
+    - name: Run
+      run: ./debugjois.dev build
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-2
+
+    - name: Upload to S3
+      run: ./debugjois.dev upload
