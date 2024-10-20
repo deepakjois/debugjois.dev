@@ -8,3 +8,4 @@ Daily Log: https://debugjois.dev/daily
 * `sync-notes-gdrive` subcommand syncs daily notes from a Google Drive folder
 * `build` subcommand builds the site (`watch.sh` watches for changes and builds the site).
 * `upload` subcommand uploads the site to S3, where it is picked up by Cloudfront and served on the debujois.dev domain.
+* `build-newsletter` combines entries from the last week (Sun-Sat) and formats them to be ready to paste in the Buttondown Markdown compose interface.
