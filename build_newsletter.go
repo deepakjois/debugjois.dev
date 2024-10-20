@@ -78,8 +78,8 @@ func transformMarkdown(content string) string {
 	obsidianImageRegex := regexp.MustCompile(`\[\[(.+)\]\]`)
 	content = obsidianImageRegex.ReplaceAllString(content, "![](https://debugjois.dev/images/$1)")
 
-	// Strip image syntax from Twitter embeds
-	twitterEmbedRegex := regexp.MustCompile(`!\[]\((https://x\.com/[^)]+)\)`)
+	// Strip image syntax from embeds
+	twitterEmbedRegex := regexp.MustCompile(`!\[]\((.*)\)`)
 	content = twitterEmbedRegex.ReplaceAllString(content, "$1")
 
 	return content
