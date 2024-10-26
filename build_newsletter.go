@@ -14,8 +14,8 @@ type BuildNewsletterCmd struct{}
 
 func (cmd *BuildNewsletterCmd) Run() error {
 	now := time.Now()
-	lastSaturday := now.AddDate(0, 0, -int(now.Weekday())-1)
-	lastSunday := lastSaturday.AddDate(0, 0, -6)
+	lastSaturday := time.Date(now.Year(), now.Month(), now.Day()-int(now.Weekday())-1, 23, 59, 59, 0, now.Location())
+	lastSunday := lastSaturday.AddDate(0, 0, -6).Truncate(24 * time.Hour)
 
 	files, err := collectFiles(lastSunday, lastSaturday)
 	if err != nil {
@@ -66,7 +66,7 @@ func processFiles(files []string) (string, error) {
 			return "", fmt.Errorf("failed to read file %s: %w", file, err)
 		}
 
-		processed := transformMarkdown(string(data))
+		processed := strings.TrimRight(transformMarkdown(string(data)), "\r\n")
 		content.WriteString(processed)
 		content.WriteString("\n\n")
 	}
@@ -79,8 +79,8 @@ func transformMarkdown(content string) string {
 	content = obsidianImageRegex.ReplaceAllString(content, "![](https://debugjois.dev/images/$1)")
 
 	// Strip image syntax from embeds
-	twitterEmbedRegex := regexp.MustCompile(`!\[]\((.*)\)`)
-	content = twitterEmbedRegex.ReplaceAllString(content, "$1")
+	embedRegex := regexp.MustCompile(`!\[]\((.*)\)`)
+	content = embedRegex.ReplaceAllString(content, "$1")
 
 	return content
 }
