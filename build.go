@@ -239,8 +239,7 @@ func generateDailyNotesArchiveIndex(tmpl *template.Template, grouped []GroupedNo
 
 			idx = idx + 1
 			currDay = currDay.AddDate(0, 0, 1)
-
-			if currDay.Month() > t.Month() {
+			if currDay.Year() > t.Year() || currDay.Month() > t.Month() {
 				break
 			}
 		}
