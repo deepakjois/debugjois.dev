@@ -1,5 +1,6 @@
 <p><a href="/" class="back">← Home</a></p>
 <p>Monthly archives of daily log. Go to the <a href="/daily">current daily log</a>.</p>
+{{template "sub-form.html" .}}
 <div class="calendar-container">
     {{range $month := .Months}}
     <div class="month">
