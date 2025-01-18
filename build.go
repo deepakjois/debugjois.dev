@@ -16,6 +16,7 @@ import (
 	"github.com/otiai10/copy"
 	lo "github.com/samber/lo"
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"go.abhg.dev/goldmark/hashtag"
 )
@@ -35,6 +36,7 @@ func (b *BuildCmd) Run() error {
 			&hashtag.Extender{Variant: hashtag.ObsidianVariant},
 			&ObsidianImageExtender{ImagePath: "/images/"},
 			&ObsidianEmbedExtender{},
+			extension.NewLinkify(),
 		),
 	)
 	return b.generateSite()
