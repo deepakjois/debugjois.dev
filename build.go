@@ -135,11 +135,19 @@ func getAllNotes(md goldmark.Markdown) (notes []*Note, err error) {
 	sort.Sort(sort.Reverse(sort.StringSlice(files)))
 
 	for _, file := range files {
+		// Avoid files created by Google Drive sync conflicts
+		// See: https://github.com/deepakjois/debugjois.dev/issues/13
+		if strings.Contains(file, "conflict") {
+			fmt.Printf("skipping conflict file: %s\n", file)
+			continue
+		}
+
 		var buf bytes.Buffer
 		if err := convertMarkdownToHTML(md, file, &buf); err != nil {
 			return nil, fmt.Errorf("convert note %s: %w", file, err)
 		}
 		date := strings.TrimSuffix(filepath.Base(file), ".md")
+
 		notes = append(notes, &Note{Body: template.HTML(buf.String()), Date: date})
 	}
 	return notes, nil
