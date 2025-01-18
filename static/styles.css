@@ -172,3 +172,13 @@ blockquote {
     margin-right: auto;
     justify-content: center;
 }
+
+h3 .anchor, h4 .anchor {
+    text-decoration: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+h3:hover .anchor, h4:hover .anchor {
+    opacity: 1;
+}

@@ -18,6 +18,7 @@ import (
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
+	"go.abhg.dev/goldmark/anchor"
 	"go.abhg.dev/goldmark/hashtag"
 )
 
@@ -37,6 +38,7 @@ func (b *BuildCmd) Run() error {
 			&ObsidianImageExtender{ImagePath: "/images/"},
 			&ObsidianEmbedExtender{},
 			extension.NewLinkify(),
+			&anchor.Extender{},
 		),
 	)
 	return b.generateSite()

@@ -12,6 +12,7 @@ require (
 	github.com/otiai10/copy v1.14.0
 	github.com/samber/lo v1.47.0
 	github.com/yuin/goldmark v1.7.4
+	go.abhg.dev/goldmark/anchor v0.1.1
 	go.abhg.dev/goldmark/hashtag v0.3.1
 	google.golang.org/api v0.199.0
 )
