@@ -74,13 +74,13 @@ func processFiles(files []string) (string, error) {
 }
 
 func transformMarkdown(content string) string {
-	// Replace Obsidian image embeds
-	obsidianImageRegex := regexp.MustCompile(`\[\[(.+)\]\]`)
-	content = obsidianImageRegex.ReplaceAllString(content, "![](https://debugjois.dev/images/$1)")
-
 	// Strip image syntax from embeds
 	embedRegex := regexp.MustCompile(`!\[]\((.*)\)`)
 	content = embedRegex.ReplaceAllString(content, "$1")
+
+	// Replace Obsidian image embeds
+	obsidianImageRegex := regexp.MustCompile(`!\[\[(.+)\]\]`)
+	content = obsidianImageRegex.ReplaceAllString(content, "![](https://debugjois.dev/images/$1)")
 
 	return content
 }
