@@ -25,6 +25,9 @@ Commands:
   build-newsletter [flags]
     Build weekly newsletter from daily notes
 
-Run "debugjois.dev <command> --help" for more information on a command.
+  index [flags]
+    Index daily notes
 
+  search <query> [flags]
+    Search indexed daily notes
 ```

@@ -10,6 +10,8 @@ var CLI struct {
 	SyncNotesGdrive   SyncNotesGdriveCmd   `cmd:"" help:"Sync daily notes from Google Drive"`
 	Upload            UploadCmd            `cmd:"" help:"Upload files to S3 bucket"`
 	BuildNewsletter   BuildNewsletterCmd   `cmd:"" help:"Build weekly newsletter from daily notes"`
+	Index             IndexCmd             `cmd:"" help:"Index daily notes"`
+	Search            SearchCmd            `cmd:"" help:"Search indexed daily notes"`
 }
 
 func main() {

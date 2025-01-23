@@ -28,3 +28,6 @@ build
 debugjois.dev
 .DS_Store
 credentials.json
+
+# Bleve index directory
+debugjois-dev.bleve/
