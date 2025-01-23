@@ -2,10 +2,29 @@ Website: https://debugjois.dev
 
 Daily Log: https://debugjois.dev/daily
 
-## Code
-* Go and `html/template` package for the website.
-* `sync-notes-obsidian` subcommand syncs daily notes from a local Obsidian repo
-* `sync-notes-gdrive` subcommand syncs daily notes from a Google Drive folder
-* `build` subcommand builds the site (`watch.sh` watches for changes and builds the site).
-* `upload` subcommand uploads the site to S3, where it is picked up by Cloudfront and served on the debujois.dev domain.
-* `build-newsletter` combines entries from the last week (Sun-Sat) and formats them to be ready to paste in the Buttondown Markdown compose interface.
+```
+$ ./debugjois.dev --help
+Usage: debugjois.dev <command> [flags]
+
+Flags:
+  -h, --help    Show context-sensitive help.
+
+Commands:
+  build [flags]
+    Build the static site
+
+  sync-notes-obsidian --obsidian-vault=STRING [flags]
+    Sync daily notes from Obsidian vault
+
+  sync-notes-gdrive --folder-id=STRING --creds=STRING [flags]
+    Sync daily notes from Google Drive
+
+  upload [flags]
+    Upload files to S3 bucket
+
+  build-newsletter [flags]
+    Build weekly newsletter from daily notes
+
+Run "debugjois.dev <command> --help" for more information on a command.
+
+```
