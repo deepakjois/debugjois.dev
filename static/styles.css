@@ -185,3 +185,25 @@ h3 .anchor, h4 .anchor {
 h3:hover .anchor, h4:hover .anchor {
     opacity: 1;
 }
+
+input[type="email"] {
+    padding: .5rem;
+    width: 50%;
+}
+
+form {
+    margin-top: 1rem;
+}
+
+summary {
+    cursor: pointer;
+}
+
+input[type="submit"] {
+    padding: 0.7rem;
+    background-color: #00A0D3;
+    color: white;
+    font-weight: bold;
+    border: none;
+    cursor: pointer; 
+}
