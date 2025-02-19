@@ -21,9 +21,6 @@ jobs:
     - name: Build
       run: go build ./...
 
-    - name: Run
-      run: ./debugjois.dev build
-
     - name: Post to Buttondown
       env:
         BUTTONDOWN_API_KEY: ${{ secrets.BUTTONDOWN_API_KEY }}
