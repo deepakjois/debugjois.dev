@@ -21,19 +21,19 @@
                 heading.insertAdjacentHTML('beforeend', `<a class="anchor" href="#${id}">#</a>`);
             });
             
-            document.addEventListener('click', e => {
-                if (e.target.matches('.anchor')) {
+            document.querySelectorAll('.notes h3 > .anchor, .notes h4 > .anchor').forEach(anchor => {
+                anchor.addEventListener('click', e => {
                     e.preventDefault();
                     const url = window.location.origin + window.location.pathname + e.target.getAttribute('href');
                     navigator.clipboard.writeText(url);
-                    
+
                     const msg = document.createElement('span');
                     msg.textContent = ' Copied!';
                     msg.style.cssText = 'color:#666; font-size:0.6em; margin-left:4px;';
                     e.target.parentNode.appendChild(msg);
-                    
+
                     setTimeout(() => msg.remove(), 2000);
-                }
+                });
             });
         });
     </script>
