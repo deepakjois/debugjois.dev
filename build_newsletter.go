@@ -25,8 +25,13 @@ type ButtondownPayload struct {
 }
 
 func (cmd *BuildNewsletterCmd) Run() error {
-	now := time.Now()
-	lastSaturday := time.Date(now.Year(), now.Month(), now.Day()-int(now.Weekday())-1, 23, 59, 59, 0, now.Location())
+	// Load the Asia/Kolkata time zone (IST)
+	ist, err := time.LoadLocation("Asia/Kolkata")
+	if err != nil {
+		return err
+	}
+	now := time.Now().In(ist)
+	lastSaturday := time.Date(now.Year(), now.Month(), now.Day()-int(now.Weekday())-1, 23, 59, 59, 0, ist)
 	lastSunday := lastSaturday.AddDate(0, 0, -6).Truncate(24 * time.Hour)
 
 	files, err := collectFiles(lastSunday, lastSaturday)
