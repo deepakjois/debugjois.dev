@@ -1,0 +1,30 @@
+name: Post Newsletter to Buttondown
+
+on:
+  workflow_dispatch:
+  schedule: # every sunday at 1831 UTC or 0001 IST
+    - cron: '31 18 * * 0'
+
+jobs:
+  post-newsletter:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+
+    - name: Build
+      run: go build ./...
+
+    - name: Run
+      run: ./debugjois.dev build
+
+    - name: Post to Buttondown
+      env:
+        BUTTONDOWN_API_KEY: ${{ secrets.BUTTONDOWN_API_KEY }}
+      run: ./debugjois.dev build-newsletter --post
