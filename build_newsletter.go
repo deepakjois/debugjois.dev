@@ -15,7 +15,7 @@ import (
 )
 
 type BuildNewsletterCmd struct {
-	Post bool `help:"Post to ButtonDown API instead of stdout"`
+	Post bool `help:"Post to Buttondown API (BUTTONDOWN_API_KEY must be set)"`
 }
 
 type ButtondownPayload struct {
