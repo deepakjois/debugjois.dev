@@ -58,7 +58,7 @@ func (cmd *BuildNewsletterCmd) Run() error {
 func postToButtondown(content string, year, weekNum int) error {
 	payload := ButtondownPayload{
 		Subject: fmt.Sprintf("Daily Log Digest – Week %d, %d", weekNum, year),
-		Body:    content,
+		Body:    "<!-- buttondown-editor-mode: plaintext -->\n" + content, // See: https://github.com/buttondown/discussions/discussions/59#discussioncomment-12251332
 		Status:  "draft",
 	}
 
