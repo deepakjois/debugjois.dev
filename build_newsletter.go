@@ -1,7 +1,11 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -10,7 +14,15 @@ import (
 	"time"
 )
 
-type BuildNewsletterCmd struct{}
+type BuildNewsletterCmd struct {
+	Post bool `help:"Post to ButtonDown API instead of stdout"`
+}
+
+type ButtondownPayload struct {
+	Subject string `json:"subject"`
+	Body    string `json:"body"`
+	Status  string `json:"status"`
+}
 
 func (cmd *BuildNewsletterCmd) Run() error {
 	now := time.Now()
@@ -27,7 +39,54 @@ func (cmd *BuildNewsletterCmd) Run() error {
 		return fmt.Errorf("failed to process files: %w", err)
 	}
 
-	fmt.Println(content)
+	if cmd.Post {
+		year, weekNum := lastSunday.ISOWeek()
+		if err := postToButtondown(content, year, weekNum); err != nil {
+			return fmt.Errorf("failed to post to ButtonDown: %w", err)
+		}
+	} else {
+		fmt.Println(content)
+	}
+	return nil
+}
+
+func postToButtondown(content string, year, weekNum int) error {
+	payload := ButtondownPayload{
+		Subject: fmt.Sprintf("Daily Log Digest – Week %d, %d", weekNum, year),
+		Body:    content,
+		Status:  "draft",
+	}
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(payload); err != nil {
+		return fmt.Errorf("failed to encode JSON payload: %w", err)
+	}
+
+	apiKey := os.Getenv("BUTTONDOWN_API_KEY")
+	if apiKey == "" {
+		return fmt.Errorf("BUTTONDOWN_API_KEY environment variable not set")
+	}
+
+	req, err := http.NewRequest("POST", "https://api.buttondown.com/v1/emails", &buf)
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Token "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute HTTP request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, body)
+	}
+
 	return nil
 }
 
