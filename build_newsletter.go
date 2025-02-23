@@ -27,13 +27,13 @@ type ButtondownPayload struct {
 // lastSaturday returns the most recent Saturday before the given time t.
 // If t is Saturday, it returns the Saturday one week ago.
 func lastSaturday(t time.Time) time.Time {
-	// The modulo arithmetic handles wrap-around (e.g. beginning of week/month/year).
-	diff := (int(t.Weekday()) - int(time.Saturday) + 7) % 7
-	// If today is Saturday (diff == 0), subtract 7 days to get the previous Saturday.
-	if diff == 0 {
-		diff = 7
+	diff := 0
+	if t.Weekday() == time.Saturday {
+		diff = -7
+	} else {
+		diff = -int(t.Weekday()) - 1
 	}
-	return t.AddDate(0, 0, -diff)
+	return t.AddDate(0, 0, diff)
 }
 
 func (cmd *BuildNewsletterCmd) Run() error {
@@ -56,19 +56,20 @@ func (cmd *BuildNewsletterCmd) Run() error {
 		return fmt.Errorf("failed to process files: %w", err)
 	}
 
+	year, weekNum := sun.ISOWeek()
 	if cmd.Post {
-		year, weekNum := sun.ISOWeek()
+		fmt.Fprintf(os.Stderr, "posting weekly digest for week %d, %d to Buttondown\n", weekNum, year)
 		if err := postToButtondown(content, year, weekNum); err != nil {
 			return fmt.Errorf("failed to post to ButtonDown: %w", err)
 		}
 	} else {
+		fmt.Fprintf(os.Stderr, "weekly digest for week %d, %d\n", weekNum, year)
 		fmt.Println(content)
 	}
 	return nil
 }
 
 func postToButtondown(content string, year, weekNum int) error {
-	fmt.Printf("posting weekly digest for week %d, %d to Buttondown\n", weekNum, year)
 	payload := ButtondownPayload{
 		Subject: fmt.Sprintf("Daily Log Digest – Week %d, %d", weekNum, year),
 		Body:    "<!-- buttondown-editor-mode: plaintext -->\n" + content, // See: https://github.com/buttondown/discussions/discussions/59#discussioncomment-12251332
