@@ -68,7 +68,7 @@ func (cmd *BuildNewsletterCmd) Run() error {
 }
 
 func postToButtondown(content string, year, weekNum int) error {
-	fmt.Printf("posting weekly digest for %d, %d to Buttondown\n", year, weekNum)
+	fmt.Printf("posting weekly digest for week %d, %d to Buttondown\n", weekNum, year)
 	payload := ButtondownPayload{
 		Subject: fmt.Sprintf("Daily Log Digest – Week %d, %d", weekNum, year),
 		Body:    "<!-- buttondown-editor-mode: plaintext -->\n" + content, // See: https://github.com/buttondown/discussions/discussions/59#discussioncomment-12251332
