@@ -24,6 +24,18 @@ type ButtondownPayload struct {
 	Status  string `json:"status"`
 }
 
+// lastSaturday returns the most recent Saturday before the given time t.
+// If t is Saturday, it returns the Saturday one week ago.
+func lastSaturday(t time.Time) time.Time {
+	// The modulo arithmetic handles wrap-around (e.g. beginning of week/month/year).
+	diff := (int(t.Weekday()) - int(time.Saturday) + 7) % 7
+	// If today is Saturday (diff == 0), subtract 7 days to get the previous Saturday.
+	if diff == 0 {
+		diff = 7
+	}
+	return t.AddDate(0, 0, -diff)
+}
+
 func (cmd *BuildNewsletterCmd) Run() error {
 	// Load the Asia/Kolkata time zone (IST)
 	ist, err := time.LoadLocation("Asia/Kolkata")
@@ -31,10 +43,10 @@ func (cmd *BuildNewsletterCmd) Run() error {
 		return err
 	}
 	now := time.Now().In(ist)
-	lastSaturday := time.Date(now.Year(), now.Month(), now.Day()-int(now.Weekday())-1, 23, 59, 59, 0, ist)
-	lastSunday := lastSaturday.AddDate(0, 0, -6).Truncate(24 * time.Hour)
+	sat := lastSaturday(now)
+	sun := sat.AddDate(0, 0, -6).Truncate(24 * time.Hour)
 
-	files, err := collectFiles(lastSunday, lastSaturday)
+	files, err := collectFiles(sun, sat)
 	if err != nil {
 		return fmt.Errorf("failed to collect files: %w", err)
 	}
@@ -45,7 +57,7 @@ func (cmd *BuildNewsletterCmd) Run() error {
 	}
 
 	if cmd.Post {
-		year, weekNum := lastSunday.ISOWeek()
+		year, weekNum := sun.ISOWeek()
 		if err := postToButtondown(content, year, weekNum); err != nil {
 			return fmt.Errorf("failed to post to ButtonDown: %w", err)
 		}
@@ -56,6 +68,7 @@ func (cmd *BuildNewsletterCmd) Run() error {
 }
 
 func postToButtondown(content string, year, weekNum int) error {
+	fmt.Printf("posting weekly digest for %d, %d to Buttondown\n", year, weekNum)
 	payload := ButtondownPayload{
 		Subject: fmt.Sprintf("Daily Log Digest – Week %d, %d", weekNum, year),
 		Body:    "<!-- buttondown-editor-mode: plaintext -->\n" + content, // See: https://github.com/buttondown/discussions/discussions/59#discussioncomment-12251332
