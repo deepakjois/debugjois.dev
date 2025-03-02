@@ -2,8 +2,8 @@ name: Post Newsletter to Buttondown
 
 on:
   workflow_dispatch:
-  schedule: # every sunday at 1831 UTC or 0001 IST
-    - cron: '31 18 * * 0'
+  schedule: # every sat at 1831 UTC or 0001 IST
+    - cron: '31 18 * * 6'
 
 jobs:
   post-newsletter:
