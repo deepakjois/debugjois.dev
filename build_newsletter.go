@@ -12,10 +12,13 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/resend/resend-go/v2"
 )
 
 type BuildNewsletterCmd struct {
-	Post bool `help:"Post to Buttondown API (BUTTONDOWN_API_KEY must be set)"`
+	Post   bool `help:"Post to Buttondown API (BUTTONDOWN_API_KEY must be set)"`
+	Notify bool `help:"Send notification email after posting (RESEND_API_KEY must be set)"`
 }
 
 type ButtondownPayload struct {
@@ -58,9 +61,15 @@ func (cmd *BuildNewsletterCmd) Run() error {
 
 	year, weekNum := sun.ISOWeek()
 	if cmd.Post {
-		fmt.Fprintf(os.Stderr, "posting weekly digest for week %d, %d to Buttondown\n", weekNum, year)
+		fmt.Fprintf(os.Stderr, "posting weekly digest for Week %d, %d to Buttondown\n", weekNum, year)
 		if err := postToButtondown(content, year, weekNum); err != nil {
 			return fmt.Errorf("failed to post to ButtonDown: %w", err)
+		}
+
+		if cmd.Notify {
+			if err := sendNotificationEmail(year, weekNum); err != nil {
+				return fmt.Errorf("failed to send notification email: %w", err)
+			}
 		}
 	} else {
 		fmt.Fprintf(os.Stderr, "weekly digest for week %d, %d\n", weekNum, year)
@@ -161,4 +170,28 @@ func transformMarkdown(content string) string {
 	content = obsidianImageRegex.ReplaceAllString(content, "![](https://debugjois.dev/images/$1)")
 
 	return content
+}
+
+// sendNotificationEmail sends a notification email using Resend API after the newsletter has been posted
+func sendNotificationEmail(year, weekNum int) error {
+	apiKey := os.Getenv("RESEND_API_KEY")
+	if apiKey == "" {
+		return fmt.Errorf("RESEND_API_KEY environment variable not set")
+	}
+
+	client := resend.NewClient(apiKey)
+
+	params := &resend.SendEmailRequest{
+		From:    "hi@notifications.debugjois.dev",
+		To:      []string{"deepak.jois@gmail.com"},
+		Subject: fmt.Sprintf("Newsletter posted - Week %d, %d", weekNum, year),
+		Html:    fmt.Sprintf("Your weekly newsletter for Week %d, %d has been posted to Buttondown.", weekNum, year),
+	}
+
+	_, err := client.Emails.Send(params)
+	if err != nil {
+		return fmt.Errorf("failed to send email: %w", err)
+	}
+
+	return nil
 }

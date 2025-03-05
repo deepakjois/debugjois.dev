@@ -71,6 +71,7 @@ require (
 	github.com/itchyny/timefmt-go v0.1.5 // indirect
 	github.com/json-iterator/go v0.0.0-20171115153421-f7279a603ede // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
+	github.com/resend/resend-go/v2 v2.15.0 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go.opencensus.io v0.24.0 // indirect
