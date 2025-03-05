@@ -31,3 +31,4 @@ credentials.json
 
 # Bleve index directory
 debugjois-dev.bleve/
+.cursor
