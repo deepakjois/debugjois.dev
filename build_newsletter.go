@@ -21,6 +21,14 @@ type BuildNewsletterCmd struct {
 	Notify bool `help:"Send notification email after posting (RESEND_API_KEY must be set)"`
 }
 
+// Validate ensures that --notify is only used with --post
+func (cmd *BuildNewsletterCmd) Validate() error {
+	if cmd.Notify && !cmd.Post {
+		return fmt.Errorf("--notify can only be used with --post")
+	}
+	return nil
+}
+
 type ButtondownPayload struct {
 	Subject string `json:"subject"`
 	Body    string `json:"body"`
