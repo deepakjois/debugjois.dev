@@ -24,4 +24,4 @@ jobs:
     - name: Post to Buttondown
       env:
         BUTTONDOWN_API_KEY: ${{ secrets.BUTTONDOWN_API_KEY }}
-      run: ./debugjois.dev build-newsletter --post
+      run: ./debugjois.dev build-newsletter --post --notify
