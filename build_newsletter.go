@@ -16,15 +16,6 @@ import (
 	"github.com/resend/resend-go/v2"
 )
 
-var ist *time.Location
-
-func init() {
-	var err error
-	ist, err = time.LoadLocation("Asia/Kolkata")
-	if err != nil {
-		panic(fmt.Sprintf("failed to load IST timezone: %v", err))
-	}
-}
 
 type BuildNewsletterCmd struct {
 	Post   bool `help:"Post to Buttondown API (BUTTONDOWN_API_KEY must be set)"`
@@ -58,7 +49,7 @@ func lastSaturday(t time.Time) time.Time {
 }
 
 func (cmd *BuildNewsletterCmd) Run() error {
-	now := time.Now().In(ist)
+	now := time.Now().In(IST)
 	sat := lastSaturday(now)
 	sun := sat.AddDate(0, 0, -6).Truncate(24 * time.Hour)
 
@@ -141,7 +132,7 @@ func collectFiles(start, end time.Time) ([]string, error) {
 			return nil
 		}
 		if strings.HasSuffix(info.Name(), ".md") {
-			date, err := time.ParseInLocation("2006-01-02.md", info.Name(), ist)
+			date, err := time.ParseInLocation("2006-01-02.md", info.Name(), IST)
 			if err != nil {
 				return nil // Skip files that don't match the expected format
 			}
