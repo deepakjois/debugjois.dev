@@ -69,7 +69,7 @@ func (cmd *BuildNewsletterCmd) Run() error {
 
 	year, weekNum := sun.ISOWeek()
 	if cmd.Post {
-		fmt.Fprintf(os.Stderr, "posting weekly digest for Week %d, %d to Buttondown\n", weekNum, year)
+		fmt.Fprintf(os.Stderr, "posting weekly digest for Week %d, %d (%s to %s) to Buttondown\n", weekNum, year, sun.Format("2006-01-02"), sat.Format("2006-01-02"))
 		if err := postToButtondown(content, year, weekNum); err != nil {
 			return fmt.Errorf("failed to post to ButtonDown: %w", err)
 		}
@@ -80,7 +80,7 @@ func (cmd *BuildNewsletterCmd) Run() error {
 			}
 		}
 	} else {
-		fmt.Fprintf(os.Stderr, "weekly digest for week %d, %d\n", weekNum, year)
+		fmt.Fprintf(os.Stderr, "weekly digest for week %d %d (%s to %s)\n", weekNum, year, sun.Format("2006-01-02"), sat.Format("2006-01-02"))
 		fmt.Println(content)
 	}
 	return nil
