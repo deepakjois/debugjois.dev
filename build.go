@@ -61,7 +61,7 @@ type GroupedNotes struct {
 }
 
 func (b *BuildCmd) generateSite() error {
-	if err := os.MkdirAll("build/images", 0755); err != nil {
+	if err := os.MkdirAll("build/images", 0o755); err != nil {
 		return fmt.Errorf("create build directory: %w", err)
 	}
 
@@ -299,7 +299,6 @@ func renderDailyNotesFeed(notes []*Note) error {
 		Id:       "https://www.debugjois.dev/daily",
 		Updated:  time.Now().Format(time.RFC3339),
 	}
-
 
 	for _, note := range notes {
 		if note.Date == time.Now().In(IST).Format("2006-01-02") { // skip today

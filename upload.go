@@ -76,7 +76,6 @@ func (u *UploadCmd) Run() error {
 		}
 		return nil
 	})
-
 	if err != nil {
 		return fmt.Errorf("error walking the path %s: %v", u.SourceDir, err)
 	}
@@ -131,7 +130,6 @@ func (u *UploadCmd) upload(ctx context.Context, client *s3.Client, path, key str
 		Body:        bytes.NewReader(content),
 		ContentType: aws.String(contentType),
 	})
-
 	if err != nil {
 		return err
 	}
