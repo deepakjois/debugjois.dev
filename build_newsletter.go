@@ -16,7 +16,6 @@ import (
 	"github.com/resend/resend-go/v2"
 )
 
-
 type BuildNewsletterCmd struct {
 	Post   bool `help:"Post to Buttondown API (BUTTONDOWN_API_KEY must be set)"`
 	Notify bool `help:"Send notification email after posting (RESEND_API_KEY must be set)"`

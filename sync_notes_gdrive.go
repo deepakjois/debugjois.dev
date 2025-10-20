@@ -54,7 +54,7 @@ func (cmd *SyncNotesGdriveCmd) syncFolder(ctx context.Context, drv *drive.Servic
 			localPath := filepath.Join(localPath, f.Name)
 
 			if f.MimeType == "application/vnd.google-apps.folder" {
-				if err := os.MkdirAll(localPath, 0755); err != nil {
+				if err := os.MkdirAll(localPath, 0o755); err != nil {
 					return fmt.Errorf("failed to create local folder: %w", err)
 				}
 				if err := cmd.syncFolder(ctx, drv, f.Id, localPath); err != nil {

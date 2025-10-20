@@ -109,7 +109,6 @@ func (i *IndexCmd) Run() error {
 
 		return nil
 	})
-
 	if err != nil {
 		return fmt.Errorf("failed to walk directory: %w", err)
 	}
