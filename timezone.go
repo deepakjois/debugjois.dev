@@ -1,16 +1,36 @@
 package main
 
 import (
-	"fmt"
 	"time"
+
+	"github.com/matthalp/go-meridian/cet"
 )
 
-var IST *time.Location
+// AppTimezone represents the application's configured timezone.
+// To change the timezone, update this type alias and the corresponding import.
+// Available timezones: utc, et, pt, ct, mt, cst, jst, ist, hkt, sgt, gmt, cet, brt, aest
+type AppTimezone = cet.Time
 
-func init() {
-	var err error
-	IST, err = time.LoadLocation("Asia/Kolkata")
-	if err != nil {
-		panic(fmt.Sprintf("failed to load IST timezone: %v", err))
-	}
+// Now returns the current time in the application's configured timezone.
+func Now() AppTimezone {
+	return cet.Now()
 }
+
+// ParseDate parses a date string in "YYYY-MM-DD" format in the application's timezone.
+func ParseDate(dateStr string) (AppTimezone, error) {
+	return cet.Parse("2006-01-02", dateStr)
+}
+
+// DateInAppTimezone creates a date in the application's timezone.
+func DateInAppTimezone(year int, month time.Month, day, hour, min, sec, nsec int) AppTimezone {
+	return cet.Date(year, month, day, hour, min, sec, nsec)
+}
+
+// TodayString returns today's date in "YYYY-MM-DD" format in the application's timezone.
+func TodayString() string {
+	return Now().Format("2006-01-02")
+}
+
+// Legacy: IST is kept for backward compatibility but points to CET location.
+// This will be removed after all code is migrated to use the new helper functions.
+var IST *time.Location = cet.Location()

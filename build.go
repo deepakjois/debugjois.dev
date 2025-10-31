@@ -301,14 +301,14 @@ func renderDailyNotesFeed(notes []*Note) error {
 	}
 
 	for _, note := range notes {
-		if note.Date == time.Now().In(IST).Format("2006-01-02") { // skip today
+		if note.Date == TodayString() { // skip today
 			continue
 		}
 		var updated time.Time
-		if date, err := time.ParseInLocation("2006-01-02", note.Date, IST); err != nil {
+		if date, err := ParseDate(note.Date); err != nil {
 			return err
 		} else {
-			date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, IST)
+			date = DateInAppTimezone(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0)
 			updated = date.Add(24 * time.Hour)
 		}
 
