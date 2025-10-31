@@ -304,13 +304,13 @@ func renderDailyNotesFeed(notes []*Note) error {
 		if note.Date == TodayString() { // skip today
 			continue
 		}
-		var updated time.Time
-		if date, err := ParseDate(note.Date); err != nil {
+		// Parse the note date and add 24 hours to represent end of day
+		// Convert to UTC for RSS feed timestamp
+		date, err := ParseDate(note.Date)
+		if err != nil {
 			return err
-		} else {
-			date = DateInAppTimezone(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0)
-			updated = date.Add(24 * time.Hour)
 		}
+		updated := date.Add(24 * time.Hour).UTC()
 
 		entry := feeds.AtomEntry{
 			Title: note.Date,

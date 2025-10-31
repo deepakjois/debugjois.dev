@@ -2,8 +2,6 @@ module github.com/deepakjois/debugjois.dev
 
 go 1.25.0
 
-toolchain go1.25.0
-
 require (
 	github.com/alecthomas/kong v1.12.1
 	github.com/aws/aws-sdk-go-v2 v1.39.3
@@ -12,7 +10,7 @@ require (
 	github.com/bitfield/script v0.24.1
 	github.com/blevesearch/bleve/v2 v2.5.4
 	github.com/gorilla/feeds v1.2.0
-	github.com/matthalp/go-meridian v1.0.0
+	github.com/matthalp/go-meridian v1.7.0
 	github.com/otiai10/copy v1.14.1
 	github.com/resend/resend-go/v2 v2.27.0
 	github.com/samber/lo v1.52.0
