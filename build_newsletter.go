@@ -37,7 +37,7 @@ type ButtondownPayload struct {
 
 // lastSaturday returns the most recent Saturday before the given time t.
 // If t is Saturday, it returns the Saturday one week ago.
-func lastSaturday(t time.Time) time.Time {
+func lastSaturday(t AppTimezone) AppTimezone {
 	diff := 0
 	if t.Weekday() == time.Saturday {
 		diff = -7
@@ -48,7 +48,7 @@ func lastSaturday(t time.Time) time.Time {
 }
 
 func (cmd *BuildNewsletterCmd) Run() error {
-	now := time.Now().In(IST)
+	now := Now()
 	sat := lastSaturday(now)
 	sun := sat.AddDate(0, 0, -6).Truncate(24 * time.Hour)
 
@@ -121,7 +121,7 @@ func postToButtondown(content string, year, weekNum int) error {
 	return nil
 }
 
-func collectFiles(start, end time.Time) ([]string, error) {
+func collectFiles(start, end AppTimezone) ([]string, error) {
 	var files []string
 	err := filepath.Walk("content/daily-notes", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -131,7 +131,9 @@ func collectFiles(start, end time.Time) ([]string, error) {
 			return nil
 		}
 		if strings.HasSuffix(info.Name(), ".md") {
-			date, err := time.ParseInLocation("2006-01-02.md", info.Name(), IST)
+			// Parse using the app timezone helper
+			dateStr := strings.TrimSuffix(info.Name(), ".md")
+			date, err := ParseDate(dateStr)
 			if err != nil {
 				return nil // Skip files that don't match the expected format
 			}
