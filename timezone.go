@@ -30,7 +30,3 @@ func DateInAppTimezone(year int, month time.Month, day, hour, min, sec, nsec int
 func TodayString() string {
 	return Now().Format("2006-01-02")
 }
-
-// Legacy: IST is kept for backward compatibility but points to CET location.
-// This will be removed after all code is migrated to use the new helper functions.
-var IST *time.Location = cet.Location()
