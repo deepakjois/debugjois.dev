@@ -49,8 +49,8 @@ func lastSaturday(t AppTimezone) AppTimezone {
 
 func (cmd *BuildNewsletterCmd) Run() error {
 	now := Now()
-	sat := lastSaturday(now)
-	sun := sat.AddDate(0, 0, -6).Truncate(24 * time.Hour)
+	sat := lastSaturday(now).Truncate(24 * time.Hour)
+	sun := sat.AddDate(0, 0, -6)
 
 	files, err := collectFiles(sun, sat)
 	if err != nil {
