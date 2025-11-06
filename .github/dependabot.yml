@@ -13,3 +13,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"      
+    groups:
+      # Group all Go dependencies together
+      go-dependencies:
+        patterns:
+          - "*"
