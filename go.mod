@@ -12,7 +12,7 @@ require (
 	github.com/gorilla/feeds v1.2.0
 	github.com/matthalp/go-meridian v1.7.0
 	github.com/otiai10/copy v1.14.1
-	github.com/resend/resend-go/v2 v2.27.0
+	github.com/resend/resend-go/v2 v2.28.0
 	github.com/samber/lo v1.52.0
 	github.com/yuin/goldmark v1.7.13
 	go.abhg.dev/goldmark/hashtag v0.4.0
