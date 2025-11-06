@@ -16,7 +16,7 @@ require (
 	github.com/samber/lo v1.52.0
 	github.com/yuin/goldmark v1.7.13
 	go.abhg.dev/goldmark/hashtag v0.4.0
-	google.golang.org/api v0.252.0
+	google.golang.org/api v0.255.0
 )
 
 require (
@@ -86,7 +86,7 @@ require (
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251020155222-88f65dc88635 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
 	google.golang.org/grpc v1.76.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	mvdan.cc/sh/v3 v3.12.0 // indirect
