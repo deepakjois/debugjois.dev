@@ -21,6 +21,14 @@ type BuildNewsletterCmd struct {
 	Notify bool `help:"Send notification email after posting (RESEND_API_KEY must be set)"`
 }
 
+// NewsletterWeek holds the calculated week information for a newsletter.
+type NewsletterWeek struct {
+	Start   AppTimezone // Sunday (start of the newsletter period)
+	End     AppTimezone // Saturday (end of the newsletter period)
+	Year    int         // ISO year from the Monday of the week
+	WeekNum int         // ISO week number from the Monday of the week
+}
+
 // Validate ensures that --notify is only used with --post
 func (cmd *BuildNewsletterCmd) Validate() error {
 	if cmd.Notify && !cmd.Post {
@@ -33,6 +41,25 @@ type ButtondownPayload struct {
 	Subject string `json:"subject"`
 	Body    string `json:"body"`
 	Status  string `json:"status"`
+}
+
+// calculateNewsletterWeek computes the newsletter week information for a given time.
+// The newsletter covers Sunday to Saturday of the previous week.
+// The week number is based on the Monday of that week (ISO week standard).
+func calculateNewsletterWeek(t AppTimezone) NewsletterWeek {
+	sat := lastSaturday(t).Truncate(24 * time.Hour)
+	sun := sat.AddDate(0, 0, -6)
+	// Use Monday (sun + 1 day) to get the ISO week number
+	// This ensures the week number is consistent with the week the newsletter covers
+	mon := sun.AddDate(0, 0, 1)
+	year, weekNum := mon.ISOWeek()
+
+	return NewsletterWeek{
+		Start:   sun,
+		End:     sat,
+		Year:    year,
+		WeekNum: weekNum,
+	}
 }
 
 // lastSaturday returns the most recent Saturday before the given time t.
@@ -48,11 +75,9 @@ func lastSaturday(t AppTimezone) AppTimezone {
 }
 
 func (cmd *BuildNewsletterCmd) Run() error {
-	now := Now()
-	sat := lastSaturday(now).Truncate(24 * time.Hour)
-	sun := sat.AddDate(0, 0, -6)
+	week := calculateNewsletterWeek(Now())
 
-	files, err := collectFiles(sun, sat)
+	files, err := collectFiles(week.Start, week.End)
 	if err != nil {
 		return fmt.Errorf("failed to collect files: %w", err)
 	}
@@ -62,20 +87,19 @@ func (cmd *BuildNewsletterCmd) Run() error {
 		return fmt.Errorf("failed to process files: %w", err)
 	}
 
-	year, weekNum := sun.ISOWeek()
 	if cmd.Post {
-		fmt.Fprintf(os.Stderr, "posting weekly digest for Week %d, %d (%s to %s) to Buttondown\n", weekNum, year, sun.Format("2006-01-02"), sat.Format("2006-01-02"))
-		if err := postToButtondown(content, year, weekNum); err != nil {
+		fmt.Fprintf(os.Stderr, "posting weekly digest for Week %d, %d (%s to %s) to Buttondown\n", week.WeekNum, week.Year, week.Start.Format("2006-01-02"), week.End.Format("2006-01-02"))
+		if err := postToButtondown(content, week.Year, week.WeekNum); err != nil {
 			return fmt.Errorf("failed to post to ButtonDown: %w", err)
 		}
 
 		if cmd.Notify {
-			if err := sendNotificationEmail(year, weekNum); err != nil {
+			if err := sendNotificationEmail(week.Year, week.WeekNum); err != nil {
 				return fmt.Errorf("failed to send notification email: %w", err)
 			}
 		}
 	} else {
-		fmt.Fprintf(os.Stderr, "weekly digest for week %d %d (%s to %s)\n", weekNum, year, sun.Format("2006-01-02"), sat.Format("2006-01-02"))
+		fmt.Fprintf(os.Stderr, "weekly digest for week %d %d (%s to %s)\n", week.WeekNum, week.Year, week.Start.Format("2006-01-02"), week.End.Format("2006-01-02"))
 		fmt.Println(content)
 	}
 	return nil
