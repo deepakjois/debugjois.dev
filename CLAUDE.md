@@ -20,10 +20,18 @@ This is a personal website and daily log application built in Go. The main execu
 - `./debugjois.dev index` - Create/update search index for daily notes
 - `./debugjois.dev search <query>` - Search indexed daily notes with highlighted results
 
+### Newsletter Commands
+- `./debugjois.dev build-newsletter` - Preview weekly newsletter (outputs to stdout)
+- `./debugjois.dev build-newsletter --post` - Post newsletter draft to Buttondown
+- `./debugjois.dev build-newsletter --post --notify` - Post and send notification email via Resend
+
 ### Other Commands
 - `./debugjois.dev upload` - Upload files to S3 bucket
-- `./debugjois.dev build-newsletter` - Build weekly newsletter from daily notes
 - `./watch.sh` - Auto-sync from Obsidian every 60 seconds using viddy
+
+### Testing
+- `go test ./...` - Run all tests
+- `go test -v -run TestCalculateNewsletterWeek ./...` - Run specific test
 
 ## Architecture
 
@@ -83,4 +91,5 @@ build/                  # Generated static site output
 - Conflict files from Google Drive sync are automatically skipped
 - The build process groups notes by month for archive generation
 - RSS feed generation excludes "today's" notes to avoid incomplete entries
-- Custom time zone handling (Asia/Kolkata) for proper date management
+- Custom timezone handling via `timezone.go` using go-meridian library (currently CET)
+- Newsletter week calculation uses ISO week numbers based on Monday (see `build_newsletter.go`)
