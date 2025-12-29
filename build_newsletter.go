@@ -43,6 +43,10 @@ type ButtondownPayload struct {
 	Status  string `json:"status"`
 }
 
+type ButtondownResponse struct {
+	ID string `json:"id"`
+}
+
 // calculateNewsletterWeek computes the newsletter week information for a given time.
 // The newsletter covers Sunday to Saturday of the previous week.
 // The week number is based on the Monday of that week (ISO week standard).
@@ -89,12 +93,14 @@ func (cmd *BuildNewsletterCmd) Run() error {
 
 	if cmd.Post {
 		fmt.Fprintf(os.Stderr, "posting weekly digest for Week %d, %d (%s to %s) to Buttondown\n", week.WeekNum, week.Year, week.Start.Format("2006-01-02"), week.End.Format("2006-01-02"))
-		if err := postToButtondown(content, week.Year, week.WeekNum); err != nil {
+		draftURL, err := postToButtondown(content, week.Year, week.WeekNum)
+		if err != nil {
 			return fmt.Errorf("failed to post to ButtonDown: %w", err)
 		}
+		fmt.Fprintf(os.Stderr, "draft created: %s\n", draftURL)
 
 		if cmd.Notify {
-			if err := sendNotificationEmail(week.Year, week.WeekNum); err != nil {
+			if err := sendNotificationEmail(week.Year, week.WeekNum, draftURL); err != nil {
 				return fmt.Errorf("failed to send notification email: %w", err)
 			}
 		}
@@ -105,7 +111,7 @@ func (cmd *BuildNewsletterCmd) Run() error {
 	return nil
 }
 
-func postToButtondown(content string, year, weekNum int) error {
+func postToButtondown(content string, year, weekNum int) (string, error) {
 	payload := ButtondownPayload{
 		Subject: fmt.Sprintf("Daily Log Digest – Week %d, %d", weekNum, year),
 		Body:    "<!-- buttondown-editor-mode: plaintext -->\n" + content, // See: https://github.com/buttondown/discussions/discussions/59#discussioncomment-12251332
@@ -114,17 +120,17 @@ func postToButtondown(content string, year, weekNum int) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(payload); err != nil {
-		return fmt.Errorf("failed to encode JSON payload: %w", err)
+		return "", fmt.Errorf("failed to encode JSON payload: %w", err)
 	}
 
 	apiKey := os.Getenv("BUTTONDOWN_API_KEY")
 	if apiKey == "" {
-		return fmt.Errorf("BUTTONDOWN_API_KEY environment variable not set")
+		return "", fmt.Errorf("BUTTONDOWN_API_KEY environment variable not set")
 	}
 
 	req, err := http.NewRequest("POST", "https://api.buttondown.com/v1/emails", &buf)
 	if err != nil {
-		return fmt.Errorf("failed to create HTTP request: %w", err)
+		return "", fmt.Errorf("failed to create HTTP request: %w", err)
 	}
 
 	req.Header.Set("Authorization", "Token "+apiKey)
@@ -133,16 +139,26 @@ func postToButtondown(content string, year, weekNum int) error {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to execute HTTP request: %w", err)
+		return "", fmt.Errorf("failed to execute HTTP request: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return nil
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return "", fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, body)
+	}
+
+	var response ButtondownResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		return "", fmt.Errorf("failed to parse API response: %w", err)
+	}
+
+	draftURL := fmt.Sprintf("https://buttondown.com/emails/%s", response.ID)
+	return draftURL, nil
 }
 
 func collectFiles(start, end AppTimezone) ([]string, error) {
@@ -202,7 +218,7 @@ func transformMarkdown(content string) string {
 }
 
 // sendNotificationEmail sends a notification email using Resend API after the newsletter has been posted
-func sendNotificationEmail(year, weekNum int) error {
+func sendNotificationEmail(year, weekNum int, draftURL string) error {
 	apiKey := os.Getenv("RESEND_API_KEY")
 	if apiKey == "" {
 		return fmt.Errorf("RESEND_API_KEY environment variable not set")
@@ -211,10 +227,10 @@ func sendNotificationEmail(year, weekNum int) error {
 	client := resend.NewClient(apiKey)
 
 	params := &resend.SendEmailRequest{
-		From:    "hi@notifications.debugjois.dev",
+		From:    "debugjois.dev NewsletterBot <hi@notifications.debugjois.dev>",
 		To:      []string{"deepak.jois@gmail.com"},
 		Subject: fmt.Sprintf("Newsletter posted - Week %d, %d", weekNum, year),
-		Html:    fmt.Sprintf("Your weekly newsletter for Week %d, %d has been posted to Buttondown.", weekNum, year),
+		Html:    fmt.Sprintf("Your weekly newsletter for Week %d, %d has been posted to Buttondown.<br><br>Edit draft: <a href=\"%s\">%s</a>", weekNum, year, draftURL, draftURL),
 	}
 
 	_, err := client.Emails.Send(params)
