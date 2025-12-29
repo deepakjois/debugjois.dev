@@ -25,6 +25,10 @@ This is a personal website and daily log application built in Go. The main execu
 - `./debugjois.dev build-newsletter --post` - Post newsletter draft to Buttondown
 - `./debugjois.dev build-newsletter --post --notify` - Post and send notification email via Resend
 
+`BUTTONDOWN_API_KEY` must be set to post the newsletter. `RESEND_API_KEY` must
+be set to send an email. Ask for their values if instructed to run the command
+and they havent been provided
+
 ### Other Commands
 - `./debugjois.dev upload` - Upload files to S3 bucket
 - `./watch.sh` - Auto-sync from Obsidian every 60 seconds using viddy
