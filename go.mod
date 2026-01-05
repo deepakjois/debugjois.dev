@@ -14,7 +14,7 @@ require (
 	github.com/otiai10/copy v1.14.1
 	github.com/resend/resend-go/v2 v2.28.0
 	github.com/samber/lo v1.52.0
-	github.com/yuin/goldmark v1.7.13
+	github.com/yuin/goldmark v1.7.14
 	go.abhg.dev/goldmark/hashtag v0.4.0
 	google.golang.org/api v0.258.0
 )
