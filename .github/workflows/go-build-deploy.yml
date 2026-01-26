@@ -17,9 +17,18 @@ jobs:
     - uses: actions/setup-go@v6
       with:
         go-version: '1.25'
+        cache: true
 
     - name: Build
       run: go build ./...
+
+    - name: Restore build cache
+      uses: actions/cache@v4
+      with:
+        path: build
+        key: site-build-${{ hashFiles('content/**', 'templates/**', 'static/**') }}
+        restore-keys: |
+          site-build-
 
     - name: Run
       run: ./debugjois.dev build
