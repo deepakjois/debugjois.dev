@@ -23,7 +23,7 @@ jobs:
       run: go build ./...
 
     - name: Restore build cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: build
         key: site-build-${{ hashFiles('content/**', 'templates/**', 'static/**') }}
