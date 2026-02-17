@@ -52,10 +52,8 @@ func (u *UploadCmd) Run() error {
 	var wg sync.WaitGroup
 
 	// Create a pool of 10 worker goroutines
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 10 {
+		wg.Go(func() {
 			for path := range filesChan {
 				key := filepath.ToSlash(path)
 				if err := u.upload(ctx, client, path, key, objects); err != nil {
@@ -63,7 +61,7 @@ func (u *UploadCmd) Run() error {
 					errorCount.Add(1)
 				}
 			}
-		}()
+		})
 	}
 
 	// Walk the source directory using fs.WalkDir

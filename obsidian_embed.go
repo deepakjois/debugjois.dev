@@ -85,7 +85,7 @@ func (a *astTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 
 		u, err := url.Parse(string(img.Destination))
 		if err != nil {
-			msg := ast.NewString([]byte(fmt.Sprintf("<!-- %s -->", err)))
+			msg := ast.NewString(fmt.Appendf(nil, "<!-- %s -->", err))
 			msg.SetCode(true)
 			n.Parent().InsertAfter(n.Parent(), n, msg)
 			return ast.WalkContinue, nil

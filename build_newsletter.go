@@ -170,9 +170,9 @@ func collectFiles(start, end AppTimezone) ([]string, error) {
 		if info.IsDir() {
 			return nil
 		}
-		if strings.HasSuffix(info.Name(), ".md") {
+		if before, ok := strings.CutSuffix(info.Name(), ".md"); ok {
 			// Parse using the app timezone helper
-			dateStr := strings.TrimSuffix(info.Name(), ".md")
+			dateStr := before
 			date, err := ParseDate(dateStr)
 			if err != nil {
 				return nil // Skip files that don't match the expected format
