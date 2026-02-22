@@ -25,9 +25,4 @@ Commands:
   build-newsletter [flags]
     Build weekly newsletter from daily notes
 
-  index [flags]
-    Index daily notes
-
-  search <query> [flags]
-    Search indexed daily notes
 ```
