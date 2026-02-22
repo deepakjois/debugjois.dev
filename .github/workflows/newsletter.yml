@@ -12,6 +12,8 @@ jobs:
       contents: read
 
     steps:
+    - uses: actions/checkout@v6
+
     - uses: ./.github/actions/setup-and-build
 
     - name: Post to Buttondown
