@@ -10,9 +10,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-and-build
         with:
-          go-version-file: go.mod
+          build: 'false'
       - run: go get -u -t ./...
       - run: go test ./...
