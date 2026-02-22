@@ -12,20 +12,4 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@v6
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version-file: 'go.mod'
-
-      - name: Build Go project
-        run: |
-          echo "Building Go project..."
-          go build ./...
-          if [ $? -ne 0 ]; then
-            echo "Go build failed!"
-            exit 1
-          fi
-          echo "Go build successful!"
+      - uses: ./.github/actions/setup-and-build
