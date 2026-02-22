@@ -1,11 +1,9 @@
 name: Setup Go and Build
-description: Checkout repo, set up Go version from go.mod, and compile the project
+description: Set up Go version from go.mod and compile the project (checkout must happen before calling this action)
 
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v6
-
     - uses: actions/setup-go@v6
       with:
         go-version-file: 'go.mod'
