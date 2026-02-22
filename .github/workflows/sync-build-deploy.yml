@@ -15,14 +15,7 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v6
-
-    - uses: actions/setup-go@v6
-      with:
-        go-version-file: 'go.mod'
-
-    - name: Build
-      run: go build ./...
+    - uses: ./.github/actions/setup-and-build
 
     - name: Create credentials.json
       run: |
