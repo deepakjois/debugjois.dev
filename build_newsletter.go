@@ -51,8 +51,10 @@ type ButtondownResponse struct {
 // The newsletter covers Sunday to Saturday of the previous week.
 // The week number is based on the Monday of that week (ISO week standard).
 func calculateNewsletterWeek(t AppTimezone) NewsletterWeek {
-	sat := lastSaturday(t).Truncate(24 * time.Hour)
-	sun := sat.AddDate(0, 0, -6)
+	sat := lastSaturday(t)
+	// Get the date components and create a new time at midnight in the app timezone
+	satMidnight := DateInAppTimezone(sat.Year(), sat.Month(), sat.Day(), 0, 0, 0, 0)
+	sun := satMidnight.AddDate(0, 0, -6)
 	// Use Monday (sun + 1 day) to get the ISO week number
 	// This ensures the week number is consistent with the week the newsletter covers
 	mon := sun.AddDate(0, 0, 1)
@@ -60,7 +62,7 @@ func calculateNewsletterWeek(t AppTimezone) NewsletterWeek {
 
 	return NewsletterWeek{
 		Start:   sun,
-		End:     sat,
+		End:     satMidnight,
 		Year:    year,
 		WeekNum: weekNum,
 	}
