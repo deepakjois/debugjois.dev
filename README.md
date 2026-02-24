@@ -16,9 +16,6 @@ Commands:
   sync-notes-obsidian --obsidian-vault=STRING [flags]
     Sync daily notes from Obsidian vault
 
-  sync-notes-gdrive --folder-id=STRING --creds=STRING [flags]
-    Sync daily notes from Google Drive
-
   upload [flags]
     Upload files to S3 bucket
 
