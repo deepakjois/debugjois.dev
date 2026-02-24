@@ -1,0 +1,21 @@
+name: Site Vulnerability Check
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '22 10 * * *'
+
+jobs:
+  govulncheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/site-setup-and-build
+        with:
+          build: 'false'
+      - name: Run govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...

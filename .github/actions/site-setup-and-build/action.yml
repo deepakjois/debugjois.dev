@@ -1,5 +1,5 @@
-name: Setup Go and Build
-description: Set up Go version from go.mod and optionally compile the project (checkout must happen before calling this action)
+name: Setup Go and Build Site
+description: Set up Go version from go.mod and optionally compile the site project (checkout must happen before calling this action)
 
 inputs:
   build:
@@ -11,10 +11,11 @@ runs:
   steps:
     - uses: actions/setup-go@v6
       with:
-        go-version-file: 'go.mod'
+        go-version-file: 'site/go.mod'
         cache: true
 
     - name: Build
       if: inputs.build == 'true'
       shell: bash
+      working-directory: site
       run: go build ./...
