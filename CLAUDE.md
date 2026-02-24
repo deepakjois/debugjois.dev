@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Project Overview
 
 This is a personal website and daily log application built in Go. The main executable `debugjois.dev` provides multiple commands for building a static website, syncing daily notes from Obsidian/Google Drive, managing search indexing, uploading to S3, and building newsletters.
@@ -16,9 +14,6 @@ This is a personal website and daily log application built in Go. The main execu
 
 ### Daily Notes Management
 - `./debugjois.dev sync-notes-obsidian --obsidian-vault=<path>` - Sync daily notes from Obsidian vault
-- `./debugjois.dev sync-notes-gdrive --folder-id=<id> --creds=<path>` - Sync from Google Drive
-- `./debugjois.dev index` - Create/update search index for daily notes
-- `./debugjois.dev search <query>` - Search indexed daily notes with highlighted results
 
 ### Newsletter Commands
 - `./debugjois.dev build-newsletter` - Preview weekly newsletter (outputs to stdout)
@@ -65,8 +60,6 @@ and they havent been provided
 
 **Content Sync**
 - `sync_notes_obsidian.go`: Syncs from local Obsidian vault using rsync
-- `sync_notes_gdrive.go`: Syncs from Google Drive
-- Both commands include git operations (pull, commit, push) unless `--no-git` flag used
 
 ### Directory Structure
 
@@ -92,7 +85,6 @@ build/                  # Generated static site output
 ## Development Notes
 
 - The application automatically handles Obsidian-style links and embeds
-- Conflict files from Google Drive sync are automatically skipped
 - The build process groups notes by month for archive generation
 - RSS feed generation excludes "today's" notes to avoid incomplete entries
 - Custom timezone handling via `timezone.go` using go-meridian library (currently CET)
