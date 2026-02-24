@@ -1,4 +1,4 @@
-name: Post Newsletter to Buttondown
+name: Site Newsletter
 
 on:
   workflow_dispatch:
@@ -10,11 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    defaults:
+      run:
+        working-directory: site
 
     steps:
     - uses: actions/checkout@v6
 
-    - uses: ./.github/actions/setup-and-build
+    - uses: ./.github/actions/site-setup-and-build
 
     - name: Post to Buttondown
       env:

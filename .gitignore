@@ -24,11 +24,14 @@ go.work.sum
 # env file
 .env
 scratch.*
-build
-debugjois.dev
-.DS_Store
-credentials.json
+
+# Site build output and binary
+site/build
+site/debugjois.dev
 
 # Bleve index directory
-debugjois-dev.bleve/
+site/debugjois-dev.bleve/
+
+credentials.json
+.DS_Store
 .cursor

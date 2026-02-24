@@ -1,4 +1,4 @@
-name: Sync Build and Deploy
+name: Site Sync Build and Deploy
 
 on:
   workflow_dispatch:
@@ -13,11 +13,14 @@ jobs:
     permissions:
       # Give the default GITHUB_TOKEN write permission to commit and push the changed files back to the repository.
       contents: write
+    defaults:
+      run:
+        working-directory: site
 
     steps:
     - uses: actions/checkout@v6
 
-    - uses: ./.github/actions/setup-and-build
+    - uses: ./.github/actions/site-setup-and-build
 
     - name: Create credentials.json
       run: |
@@ -36,7 +39,7 @@ jobs:
       with:
         commit_message: "GDrive Obsidian Vault Sync"
 
-    - name: Run
+    - name: Build site
       run: ./debugjois.dev build
 
     - name: Configure AWS credentials

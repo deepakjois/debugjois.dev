@@ -3,7 +3,7 @@ Website: https://debugjois.dev
 Daily Log: https://debugjois.dev/daily
 
 ```
-$ ./debugjois.dev --help
+$ cd site && ./debugjois.dev --help
 Usage: debugjois.dev <command> [flags]
 
 Flags:

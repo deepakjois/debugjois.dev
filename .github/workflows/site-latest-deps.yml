@@ -1,0 +1,23 @@
+name: Site Latest Deps Test
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '22 10 * * *'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/site-setup-and-build
+        with:
+          build: 'false'
+      - name: Update dependencies
+        run: go get -u -t ./...
+      - name: Run tests
+        run: go test ./...
