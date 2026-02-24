@@ -32,6 +32,11 @@ site/debugjois.dev
 # Bleve index directory
 site/debugjois-dev.bleve/
 
+# Frontend
+frontend/node_modules
+frontend/dist
+frontend/src/routeTree.gen.ts
+
 credentials.json
 .DS_Store
 .cursor

@@ -1,0 +1,13 @@
+[project]
+name = "debugjois-dev-lambda"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi",
+    "mangum",
+]
+
+[dependency-groups]
+dev = [
+    "fastapi[standard]>=0.115",
+]
