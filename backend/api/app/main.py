@@ -13,6 +13,18 @@ app.add_middleware(
 )
 
 
+def get_email_from_request(request: Request) -> str | None:
+    """Extract user email from API Gateway JWT authorizer claims, or None locally."""
+    event = request.scope.get("aws.event", {})
+    claims = (
+        event.get("requestContext", {})
+        .get("authorizer", {})
+        .get("jwt", {})
+        .get("claims", {})
+    )
+    return claims.get("email")
+
+
 @app.get("/")
 async def root():
     return {"message": "Hello from debugjois.dev Lambda!"}
@@ -20,9 +32,13 @@ async def root():
 
 @app.get("/health")
 async def health(request: Request):
-    event = request.scope.get("aws.event", {})
-    claims = event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}).get("claims", {})
-    return {"status": "ok", "email": claims.get("email")}
+    return {"status": "ok", "email": get_email_from_request(request)}
 
 
 handler = Mangum(app)
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
