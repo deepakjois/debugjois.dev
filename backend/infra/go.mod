@@ -1,6 +1,6 @@
-module infra
+module github.com/deepakjois/debugjois.dev/backend/infra
 
-go 1.26.0
+go 1.26.1
 
 require (
 	github.com/aws/aws-cdk-go/awscdk/v2 v2.240.0
@@ -14,6 +14,7 @@ require (
 	github.com/cdklabs/awscdk-asset-node-proxy-agent-go/nodeproxyagentv6/v2 v2.1.0 // indirect
 	github.com/cdklabs/cloud-assembly-schema-go/awscdkcloudassemblyschema/v50 v50.4.0 // indirect
 	github.com/fatih/color v1.18.0 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/yuin/goldmark v1.7.16 // indirect
