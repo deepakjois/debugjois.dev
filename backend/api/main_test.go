@@ -1,17 +1,20 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/aws/aws-lambda-go/events"
 )
 
 func TestRoot(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	res := httptest.NewRecorder()
 
-	handleLocalRequest(res, req)
+	newHandler().ServeHTTP(res, req)
 
 	if res.Code != http.StatusOK {
 		t.Fatalf("expected status %d, got %d", http.StatusOK, res.Code)
@@ -31,7 +34,7 @@ func TestHealthNoJWTContext(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	res := httptest.NewRecorder()
 
-	handleLocalRequest(res, req)
+	newHandler().ServeHTTP(res, req)
 
 	if res.Code != http.StatusOK {
 		t.Fatalf("expected status %d, got %d", http.StatusOK, res.Code)
@@ -51,17 +54,17 @@ func TestHealthNoJWTContext(t *testing.T) {
 	}
 }
 
-func TestGetEmailWithoutEvent(t *testing.T) {
+func TestGetEmailWithoutRequest(t *testing.T) {
 	if email := getEmailFromRequest(nil); email != nil {
 		t.Fatalf("expected nil email, got %q", *email)
 	}
 }
 
-func TestGetEmailWithJWTClaims(t *testing.T) {
-	event := lambdaEvent{}
-	event.RequestContext.Authorizer.JWT.Claims = map[string]string{"email": "test@example.com"}
+func TestGetEmailWithRequestContext(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	req = req.WithContext(context.WithValue(req.Context(), emailContextKey, "test@example.com"))
 
-	email := getEmailFromRequest(&event)
+	email := getEmailFromRequest(req)
 	if email == nil {
 		t.Fatal("expected email, got nil")
 	}
@@ -72,11 +75,21 @@ func TestGetEmailWithJWTClaims(t *testing.T) {
 }
 
 func TestLambdaHealthIncludesJWTEmail(t *testing.T) {
-	event := lambdaEvent{RawPath: "/health"}
-	event.RequestContext.HTTP.Method = http.MethodGet
-	event.RequestContext.Authorizer.JWT.Claims = map[string]string{"email": "test@example.com"}
+	event := events.APIGatewayV2HTTPRequest{
+		RawPath: "/health",
+		RequestContext: events.APIGatewayV2HTTPRequestContext{
+			HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{
+				Method: http.MethodGet,
+			},
+			Authorizer: &events.APIGatewayV2HTTPRequestContextAuthorizerDescription{
+				JWT: &events.APIGatewayV2HTTPRequestContextAuthorizerJWTDescription{
+					Claims: map[string]string{"email": "test@example.com"},
+				},
+			},
+		},
+	}
 
-	response, err := handleLambdaInvocation(event)
+	response, err := handleLambdaInvocation(context.Background(), event)
 	if err != nil {
 		t.Fatalf("handle lambda invocation: %v", err)
 	}
@@ -92,5 +105,23 @@ func TestLambdaHealthIncludesJWTEmail(t *testing.T) {
 
 	if body.Email == nil || *body.Email != "test@example.com" {
 		t.Fatalf("expected lambda email %q, got %#v", "test@example.com", body.Email)
+	}
+}
+
+func TestLambdaRequestWithInvalidBase64Body(t *testing.T) {
+	event := events.APIGatewayV2HTTPRequest{
+		Body:            "%%%not-base64%%%",
+		IsBase64Encoded: true,
+		RequestContext: events.APIGatewayV2HTTPRequestContext{
+			HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{
+				Method: http.MethodPost,
+				Path:   "/",
+			},
+		},
+	}
+
+	_, err := handleLambdaInvocation(context.Background(), event)
+	if err == nil {
+		t.Fatal("expected invalid base64 error, got nil")
 	}
 }

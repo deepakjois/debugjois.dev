@@ -2,14 +2,19 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
 )
 
 const (
@@ -17,30 +22,9 @@ const (
 	helloMessage = "Hello from debugjois.dev Lambda!"
 )
 
-type lambdaEvent struct {
-	RawPath         string            `json:"rawPath,omitempty"`
-	Headers         map[string]string `json:"headers,omitempty"`
-	Body            string            `json:"body,omitempty"`
-	IsBase64Encoded bool              `json:"isBase64Encoded,omitempty"`
-	RequestContext  struct {
-		HTTP struct {
-			Method string `json:"method,omitempty"`
-			Path   string `json:"path,omitempty"`
-		} `json:"http,omitempty"`
-		Authorizer struct {
-			JWT struct {
-				Claims map[string]string `json:"claims,omitempty"`
-			} `json:"jwt,omitempty"`
-		} `json:"authorizer,omitempty"`
-	} `json:"requestContext,omitempty"`
-}
+type contextKey string
 
-type lambdaResponse struct {
-	StatusCode      int               `json:"statusCode"`
-	Headers         map[string]string `json:"headers,omitempty"`
-	Body            string            `json:"body,omitempty"`
-	IsBase64Encoded bool              `json:"isBase64Encoded"`
-}
+const emailContextKey contextKey = "email"
 
 type errorResponse struct {
 	Error string `json:"error"`
@@ -55,16 +39,9 @@ type healthResponse struct {
 	Email  *string `json:"email"`
 }
 
-type lambdaErrorResponse struct {
-	ErrorMessage string `json:"errorMessage"`
-}
-
 func main() {
-	runtimeAPI := strings.TrimSpace(os.Getenv("AWS_LAMBDA_RUNTIME_API"))
-	if runtimeAPI != "" {
-		if err := runLambda(runtimeAPI); err != nil {
-			log.Fatal(err)
-		}
+	if isLambdaRuntime() {
+		lambda.Start(handleLambdaInvocation)
 		return
 	}
 
@@ -75,7 +52,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:              ":" + port,
-		Handler:           http.HandlerFunc(handleLocalRequest),
+		Handler:           newHandler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -83,38 +60,63 @@ func main() {
 	log.Fatal(server.ListenAndServe())
 }
 
-func handleLocalRequest(w http.ResponseWriter, r *http.Request) {
-	applyCORSHeaders(w.Header())
-
-	status, payload := routeRequest(r.Method, r.URL.Path, nil)
-	writeHTTPResponse(w, status, payload)
+func isLambdaRuntime() bool {
+	return strings.TrimSpace(os.Getenv("AWS_LAMBDA_RUNTIME_API")) != ""
 }
 
-func routeRequest(method string, path string, email *string) (int, any) {
-	if method == http.MethodOptions {
-		return http.StatusNoContent, nil
+func newHandler() http.Handler {
+	return withCORS(http.HandlerFunc(routeRequest))
+}
+
+func withCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		applyCORSHeaders(w.Header())
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func routeRequest(w http.ResponseWriter, r *http.Request) {
+	switch r.URL.Path {
+	case "/":
+		handleRoot(w, r)
+	case "/health":
+		handleHealth(w, r)
+	default:
+		writeHTTPResponse(w, http.StatusNotFound, errorResponse{Error: "not found"})
+	}
+}
+
+func handleRoot(w http.ResponseWriter, r *http.Request) {
+	if !isReadMethod(r.Method) {
+		writeHTTPResponse(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+		return
 	}
 
-	switch path {
-	case "/":
-		if !isReadMethod(method) {
-			return http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"}
-		}
-		if method == http.MethodHead {
-			return http.StatusOK, nil
-		}
-		return http.StatusOK, rootResponse{Message: helloMessage}
-	case "/health":
-		if !isReadMethod(method) {
-			return http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"}
-		}
-		if method == http.MethodHead {
-			return http.StatusOK, nil
-		}
-		return http.StatusOK, healthResponse{Status: "ok", Email: email}
-	default:
-		return http.StatusNotFound, errorResponse{Error: "not found"}
+	if r.Method == http.MethodHead {
+		writeHTTPResponse(w, http.StatusOK, nil)
+		return
 	}
+
+	writeHTTPResponse(w, http.StatusOK, rootResponse{Message: helloMessage})
+}
+
+func handleHealth(w http.ResponseWriter, r *http.Request) {
+	if !isReadMethod(r.Method) {
+		writeHTTPResponse(w, http.StatusMethodNotAllowed, errorResponse{Error: "method not allowed"})
+		return
+	}
+
+	if r.Method == http.MethodHead {
+		writeHTTPResponse(w, http.StatusOK, nil)
+		return
+	}
+
+	writeHTTPResponse(w, http.StatusOK, healthResponse{Status: "ok", Email: getEmailFromRequest(r)})
 }
 
 func isReadMethod(method string) bool {
@@ -138,61 +140,23 @@ func writeHTTPResponse(w http.ResponseWriter, status int, payload any) {
 	_, _ = w.Write(body)
 }
 
-func runLambda(runtimeAPI string) error {
-	client := &http.Client{}
-	baseURL := fmt.Sprintf("http://%s/2018-06-01/runtime", runtimeAPI)
-
-	for {
-		event, requestID, err := nextInvocation(client, baseURL)
-		if err != nil {
-			return err
-		}
-
-		response, err := handleLambdaInvocation(event)
-		if err != nil {
-			if postInvocationError(client, baseURL, requestID, err) != nil {
-				return err
-			}
-			continue
-		}
-
-		if err := postInvocationResponse(client, baseURL, requestID, response); err != nil {
-			return err
-		}
+func handleLambdaInvocation(ctx context.Context, event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
+	request, err := httpRequestFromLambdaEvent(ctx, event)
+	if err != nil {
+		return events.APIGatewayV2HTTPResponse{}, err
 	}
+
+	responseRecorder := httptest.NewRecorder()
+	newHandler().ServeHTTP(responseRecorder, request)
+	return lambdaResponseFromRecorder(responseRecorder), nil
 }
 
-func nextInvocation(client *http.Client, baseURL string) (lambdaEvent, string, error) {
-	request, err := http.NewRequest(http.MethodGet, baseURL+"/invocation/next", nil)
-	if err != nil {
-		return lambdaEvent{}, "", err
+func httpRequestFromLambdaEvent(ctx context.Context, event events.APIGatewayV2HTTPRequest) (*http.Request, error) {
+	method := strings.TrimSpace(event.RequestContext.HTTP.Method)
+	if method == "" {
+		method = http.MethodGet
 	}
 
-	response, err := client.Do(request)
-	if err != nil {
-		return lambdaEvent{}, "", err
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(response.Body)
-		return lambdaEvent{}, "", fmt.Errorf("lambda runtime returned %s: %s", response.Status, strings.TrimSpace(string(body)))
-	}
-
-	requestID := strings.TrimSpace(response.Header.Get("Lambda-Runtime-Aws-Request-Id"))
-	if requestID == "" {
-		return lambdaEvent{}, "", fmt.Errorf("lambda runtime response missing request id")
-	}
-
-	var event lambdaEvent
-	if err := json.NewDecoder(response.Body).Decode(&event); err != nil {
-		return lambdaEvent{}, "", err
-	}
-
-	return event, requestID, nil
-}
-
-func handleLambdaInvocation(event lambdaEvent) (lambdaResponse, error) {
 	path := strings.TrimSpace(event.RawPath)
 	if path == "" {
 		path = strings.TrimSpace(event.RequestContext.HTTP.Path)
@@ -201,82 +165,93 @@ func handleLambdaInvocation(event lambdaEvent) (lambdaResponse, error) {
 		path = "/"
 	}
 
-	status, payload := routeRequest(strings.TrimSpace(event.RequestContext.HTTP.Method), path, getEmailFromRequest(&event))
-	response := lambdaResponse{
-		StatusCode:      status,
-		Headers:         corsHeaders(),
+	target := path
+	if rawQuery := strings.TrimSpace(event.RawQueryString); rawQuery != "" {
+		target = fmt.Sprintf("%s?%s", path, rawQuery)
+	}
+
+	body, err := lambdaRequestBody(event)
+	if err != nil {
+		return nil, err
+	}
+
+	request, err := http.NewRequestWithContext(ctx, method, target, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+
+	for key, value := range event.Headers {
+		request.Header.Set(key, value)
+	}
+	if len(event.Cookies) > 0 && request.Header.Get("Cookie") == "" {
+		request.Header.Set("Cookie", strings.Join(event.Cookies, "; "))
+	}
+
+	if email := getEmailFromLambdaEvent(event); email != nil {
+		request = request.WithContext(context.WithValue(request.Context(), emailContextKey, *email))
+	}
+
+	return request, nil
+}
+
+func lambdaRequestBody(event events.APIGatewayV2HTTPRequest) ([]byte, error) {
+	if event.Body == "" {
+		return nil, nil
+	}
+
+	if !event.IsBase64Encoded {
+		return []byte(event.Body), nil
+	}
+
+	body, err := base64.StdEncoding.DecodeString(event.Body)
+	if err != nil {
+		return nil, fmt.Errorf("decode base64 request body: %w", err)
+	}
+
+	return body, nil
+}
+
+func lambdaResponseFromRecorder(responseRecorder *httptest.ResponseRecorder) events.APIGatewayV2HTTPResponse {
+	headers := make(map[string]string)
+	var cookies []string
+
+	for key, values := range responseRecorder.Header() {
+		if strings.EqualFold(key, "Set-Cookie") {
+			cookies = append(cookies, values...)
+			continue
+		}
+		if len(values) == 0 {
+			continue
+		}
+
+		headers[key] = strings.Join(values, ",")
+	}
+
+	return events.APIGatewayV2HTTPResponse{
+		StatusCode:      responseRecorder.Code,
+		Headers:         headers,
+		Body:            responseRecorder.Body.String(),
 		IsBase64Encoded: false,
+		Cookies:         cookies,
 	}
-
-	if payload == nil {
-		return response, nil
-	}
-
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return lambdaResponse{}, err
-	}
-
-	response.Body = string(body)
-	return response, nil
 }
 
-func postInvocationResponse(client *http.Client, baseURL string, requestID string, response lambdaResponse) error {
-	payload, err := json.Marshal(response)
-	if err != nil {
-		return err
+func getEmailFromRequest(request *http.Request) *string {
+	if request == nil {
+		return nil
 	}
 
-	request, err := http.NewRequest(http.MethodPost, baseURL+"/invocation/"+requestID+"/response", bytes.NewReader(payload))
-	if err != nil {
-		return err
+	email, _ := request.Context().Value(emailContextKey).(string)
+	email = strings.TrimSpace(email)
+	if email == "" {
+		return nil
 	}
 
-	request.Header.Set("Content-Type", "application/json")
-	postResponse, err := client.Do(request)
-	if err != nil {
-		return err
-	}
-	defer postResponse.Body.Close()
-
-	if postResponse.StatusCode != http.StatusAccepted && postResponse.StatusCode != http.StatusOK && postResponse.StatusCode != http.StatusNoContent {
-		body, _ := io.ReadAll(postResponse.Body)
-		return fmt.Errorf("lambda runtime rejected response with %s: %s", postResponse.Status, strings.TrimSpace(string(body)))
-	}
-
-	return nil
+	return &email
 }
 
-func postInvocationError(client *http.Client, baseURL string, requestID string, invocationErr error) error {
-	payload, err := json.Marshal(lambdaErrorResponse{ErrorMessage: invocationErr.Error()})
-	if err != nil {
-		return err
-	}
-
-	request, err := http.NewRequest(http.MethodPost, baseURL+"/invocation/"+requestID+"/error", bytes.NewReader(payload))
-	if err != nil {
-		return err
-	}
-
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Lambda-Runtime-Function-Error-Type", "Runtime.Error")
-
-	response, err := client.Do(request)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusAccepted && response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNoContent {
-		body, _ := io.ReadAll(response.Body)
-		return fmt.Errorf("lambda runtime rejected error with %s: %s", response.Status, strings.TrimSpace(string(body)))
-	}
-
-	return nil
-}
-
-func getEmailFromRequest(event *lambdaEvent) *string {
-	if event == nil {
+func getEmailFromLambdaEvent(event events.APIGatewayV2HTTPRequest) *string {
+	if event.RequestContext.Authorizer == nil || event.RequestContext.Authorizer.JWT == nil {
 		return nil
 	}
 
