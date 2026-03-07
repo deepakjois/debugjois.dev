@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigatewayv2integrations"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsecr"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsecrassets"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
@@ -47,6 +48,28 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 	imageAsset := awsecrassets.NewDockerImageAsset(stack, jsii.String("DebugJoisDevImage"), &awsecrassets.DockerImageAssetProps{
 		Directory: jsii.String(lambdaDir),
 		Platform:  awsecrassets.Platform_LINUX_AMD64(),
+	})
+
+	githubOidcProvider := awsiam.NewOpenIdConnectProvider(stack, jsii.String("GitHubOidcProvider"), &awsiam.OpenIdConnectProviderProps{
+		Url:       jsii.String("https://token.actions.githubusercontent.com"),
+		ClientIds: jsii.Strings("sts.amazonaws.com"),
+	})
+
+	githubActionsRole := awsiam.NewRole(stack, jsii.String("GitHubActionsDeployRole"), &awsiam.RoleProps{
+		RoleName: jsii.String("debugjois-dev-github-actions-role"),
+		Description: jsii.String(
+			"Role assumed by GitHub Actions via OIDC for debugjois.dev backend deployments",
+		),
+		AssumedBy: awsiam.NewOpenIdConnectPrincipal(githubOidcProvider, &map[string]interface{}{
+			"StringEquals": map[string]interface{}{
+				"token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+				"token.actions.githubusercontent.com:sub": "repo:deepakjois/debugjois.dev:ref:refs/heads/main",
+			},
+		}),
+		ManagedPolicies: &[]awsiam.IManagedPolicy{
+			awsiam.ManagedPolicy_FromAwsManagedPolicyName(jsii.String("AdministratorAccess")),
+		},
+		MaxSessionDuration: awscdk.Duration_Hours(jsii.Number(1)),
 	})
 
 	// Create Lambda function from the Docker image asset
@@ -132,6 +155,10 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 	awscdk.NewCfnOutput(stack, jsii.String("EcrRepositoryUri"), &awscdk.CfnOutputProps{
 		Value:       repo.RepositoryUri(),
 		Description: jsii.String("ECR repository URI"),
+	})
+	awscdk.NewCfnOutput(stack, jsii.String("GitHubActionsRoleArn"), &awscdk.CfnOutputProps{
+		Value:       githubActionsRole.RoleArn(),
+		Description: jsii.String("IAM role ARN for GitHub Actions OIDC deployments"),
 	})
 	awscdk.NewCfnOutput(stack, jsii.String("ApiUrl"), &awscdk.CfnOutputProps{
 		Value:       httpApi.Url(),
