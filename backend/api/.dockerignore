@@ -1,0 +1,17 @@
+.git
+.gitignore
+.DS_Store
+.venv
+.pytest_cache
+.ruff_cache
+__pycache__/
+*_test.go
+*.out
+coverage.out
+api
+bootstrap
+*.py
+pyproject.toml
+uv.lock
+app/
+tests/

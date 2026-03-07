@@ -29,6 +29,11 @@ scratch.*
 site/build
 site/debugjois.dev
 
+# Backend API build output
+backend/api/api
+backend/api/bootstrap
+backend/api/coverage.out
+
 # Bleve index directory
 site/debugjois-dev.bleve/
 
