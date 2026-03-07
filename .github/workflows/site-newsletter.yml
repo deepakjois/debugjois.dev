@@ -23,4 +23,4 @@ jobs:
       env:
         BUTTONDOWN_API_KEY: ${{ secrets.BUTTONDOWN_API_KEY }}
         RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-      run: ./debugjois.dev build-newsletter --post --notify
+      run: ./debugjois-site build-newsletter --post --notify

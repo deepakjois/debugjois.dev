@@ -18,4 +18,4 @@ runs:
       if: inputs.build == 'true'
       shell: bash
       working-directory: site
-      run: go build ./...
+      run: go build -o debugjois-site .

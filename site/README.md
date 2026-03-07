@@ -5,10 +5,10 @@ After checking out repo do the following
 ```
 $ cd site
 
-$ go build
+$ go build -o debugjois-site .
 
-$ ./debugjois.dev --help
-Usage: debugjois.dev <command> [flags]
+$ ./debugjois-site --help
+Usage: debugjois-site <command> [flags]
 
 Flags:
   -h, --help    Show context-sensitive help.

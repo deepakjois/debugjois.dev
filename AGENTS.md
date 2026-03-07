@@ -11,25 +11,25 @@ The project is structured as a monorepo to support future additions (JavaScript 
 All site commands should be run from the `site/` directory.
 
 ### Development Commands
-- `cd site && go build` - Build the main executable
-- `./debugjois.dev build` - Build the static site (outputs to `build/` directory)
-- `./debugjois.dev build --dev` - Build in dev mode (includes scratch file and drafts)
-- `./debugjois.dev build --rebuild` - Rebuild the entire archive
+- `cd site && go build -o debugjois-site .` - Build the main executable
+- `./debugjois-site build` - Build the static site (outputs to `build/` directory)
+- `./debugjois-site build --dev` - Build in dev mode (includes scratch file and drafts)
+- `./debugjois-site build --rebuild` - Rebuild the entire archive
 
 ### Daily Notes Management
-- `./debugjois.dev sync-notes-obsidian --obsidian-vault=<path>` - Sync daily notes from Obsidian vault
+- `./debugjois-site sync-notes-obsidian --obsidian-vault=<path>` - Sync daily notes from Obsidian vault
 
 ### Newsletter Commands
-- `./debugjois.dev build-newsletter` - Preview weekly newsletter (outputs to stdout)
-- `./debugjois.dev build-newsletter --post` - Post newsletter draft to Buttondown
-- `./debugjois.dev build-newsletter --post --notify` - Post and send notification email via Resend
+- `./debugjois-site build-newsletter` - Preview weekly newsletter (outputs to stdout)
+- `./debugjois-site build-newsletter --post` - Post newsletter draft to Buttondown
+- `./debugjois-site build-newsletter --post --notify` - Post and send notification email via Resend
 
 `BUTTONDOWN_API_KEY` must be set to post the newsletter. `RESEND_API_KEY` must
 be set to send an email. Ask for their values if instructed to run the command
 and they havent been provided
 
 ### Other Commands
-- `./debugjois.dev upload` - Upload files to S3 bucket
+- `./debugjois-site upload` - Upload files to S3 bucket
 - `./watch.sh` - Auto-sync from Obsidian every 60 seconds using viddy
 
 ### Testing

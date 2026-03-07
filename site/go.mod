@@ -1,4 +1,4 @@
-module github.com/deepakjois/debugjois.dev
+module github.com/deepakjois/debugjois.dev/site
 
 go 1.26.1
 

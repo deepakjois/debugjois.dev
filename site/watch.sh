@@ -1,2 +1,2 @@
 #!/bin/bash
-viddy -n 60 ./debugjois.dev sync-notes-obsidian
+viddy -n 60 ./debugjois-site sync-notes-obsidian

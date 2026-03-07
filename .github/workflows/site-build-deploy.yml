@@ -31,7 +31,7 @@ jobs:
           site-build-
 
     - name: Build site
-      run: ./debugjois.dev build
+      run: ./debugjois-site build
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v6
@@ -40,4 +40,4 @@ jobs:
         aws-region: us-east-2
 
     - name: Upload to S3
-      run: ./debugjois.dev upload
+      run: ./debugjois-site upload

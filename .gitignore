@@ -28,6 +28,7 @@ scratch.*
 site/build
 site/site
 site/debugjois.dev
+site/debugjois-site
 
 # Backend API build output
 backend/api/api
