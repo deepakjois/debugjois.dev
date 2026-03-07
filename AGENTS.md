@@ -81,12 +81,6 @@ site/                       # Static site generator (Go)
   - `ObsidianEmbedExtender`: Converts YouTube/Twitter URLs to embeds
 - Supports hashtag parsing with ObsidianVariant
 
-**Search System (`site/index.go`, `site/search.go`)**
-- Uses Bleve full-text search engine
-- Indexes all daily notes as plain text (Markdown converted)
-- Provides highlighted search results with ANSI colors
-- Index stored in `site/debugjois-dev.bleve/` directory
-
 **Content Sync**
 - `site/sync_notes_obsidian.go`: Syncs from local Obsidian vault using rsync
 
