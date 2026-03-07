@@ -133,13 +133,19 @@ uv run pytest -v            # run tests
 ```
 
 ### Prerequisites
-- Docker Desktop must be running for `cdk deploy` (it builds the image locally)
+- Docker Desktop must be running to build/push backend images locally
 - AWS credentials must be available in the default profile (`aws sts get-caller-identity` to verify)
 
 ### CDK Commands (run from `backend/infra/`)
 - `cdk diff` - preview infrastructure changes
-- `cdk deploy --require-approval never` - build image, push to ECR, deploy stack
+- `IMAGE_URI=<ecr-image-uri-or-digest> cdk deploy --require-approval never` - deploy backend infra using an existing image
 - `cdk synth` - emit CloudFormation template without deploying
+
+### Backend deploy workflow
+- `./backend/build-and-push-image.sh` - build the Lambda image, push it to the `debugjois-dev` ECR repo, and print an immutable `IMAGE_URI`
+- `./backend/deploy.sh` - deploy using the image currently configured on the deployed Lambda
+- `./backend/deploy.sh --build-image` - build/push a new image first, then deploy with it
+- `backend/infra/infra.go` requires `IMAGE_URI`; if it is unset, CDK synth/deploy should fail fast
 
 ### API Gateway
 An HTTP API (v2) fronts the Lambda. JWT auth is enforced at the gateway level — the app itself has no auth middleware. User email is extracted from `request.scope["aws.event"]` JWT claims (returns `None` locally). CORS allows any origin. The API URL is printed as `ApiUrl` after deploy.

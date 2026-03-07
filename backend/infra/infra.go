@@ -1,15 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"os"
-	"path"
+	"strings"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigatewayv2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigatewayv2authorizers"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigatewayv2integrations"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsecr"
-	"github.com/aws/aws-cdk-go/awscdk/v2/awsecrassets"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
 	"github.com/aws/constructs-go/constructs/v10"
@@ -38,17 +38,17 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 		Description:   jsii.String("Keep only last 3 images"),
 	})
 
-	// Build and push Lambda image from the api/ directory
-	dirName, err := os.Getwd()
+	imageURI := os.Getenv("IMAGE_URI")
+	if imageURI == "" {
+		panic("IMAGE_URI must be set to an existing ECR image URI")
+	}
+
+	imageRepoName, imageTagOrDigest, err := parseEcrImageURI(imageURI)
 	if err != nil {
 		panic(err)
 	}
-	lambdaDir := path.Join(dirName, "..", "api")
 
-	imageAsset := awsecrassets.NewDockerImageAsset(stack, jsii.String("DebugJoisDevImage"), &awsecrassets.DockerImageAssetProps{
-		Directory: jsii.String(lambdaDir),
-		Platform:  awsecrassets.Platform_LINUX_AMD64(),
-	})
+	imageRepo := awsecr.Repository_FromRepositoryName(stack, jsii.String("LambdaImageRepo"), jsii.String(imageRepoName))
 
 	githubOidcProvider := awsiam.NewOpenIdConnectProvider(stack, jsii.String("GitHubOidcProvider"), &awsiam.OpenIdConnectProviderProps{
 		Url:       jsii.String("https://token.actions.githubusercontent.com"),
@@ -74,8 +74,8 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 
 	// Create Lambda function from the Docker image asset
 	fn := awslambda.NewDockerImageFunction(stack, jsii.String("DebugJoisDevLambda"), &awslambda.DockerImageFunctionProps{
-		Code: awslambda.DockerImageCode_FromEcr(imageAsset.Repository(), &awslambda.EcrImageCodeProps{
-			TagOrDigest: imageAsset.ImageTag(),
+		Code: awslambda.DockerImageCode_FromEcr(imageRepo, &awslambda.EcrImageCodeProps{
+			TagOrDigest: jsii.String(imageTagOrDigest),
 		}),
 		Architecture: awslambda.Architecture_X86_64(),
 		MemorySize:   jsii.Number(512),
@@ -188,4 +188,32 @@ func env() *awscdk.Environment {
 		Account: jsii.String(os.Getenv("CDK_DEFAULT_ACCOUNT")),
 		Region:  jsii.String(os.Getenv("CDK_DEFAULT_REGION")),
 	}
+}
+
+func parseEcrImageURI(imageURI string) (string, string, error) {
+	parts := strings.SplitN(imageURI, "/", 2)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid IMAGE_URI %q: expected ECR URI", imageURI)
+	}
+
+	repoAndRef := parts[1]
+	if repoParts := strings.SplitN(repoAndRef, "@", 2); len(repoParts) == 2 {
+		if repoParts[0] == "" || repoParts[1] == "" {
+			return "", "", fmt.Errorf("invalid IMAGE_URI %q: expected repository and digest", imageURI)
+		}
+		return repoParts[0], repoParts[1], nil
+	}
+
+	lastColon := strings.LastIndex(repoAndRef, ":")
+	if lastColon == -1 {
+		return "", "", fmt.Errorf("invalid IMAGE_URI %q: expected tag or digest", imageURI)
+	}
+
+	repoName := repoAndRef[:lastColon]
+	tag := repoAndRef[lastColon+1:]
+	if repoName == "" || tag == "" {
+		return "", "", fmt.Errorf("invalid IMAGE_URI %q: expected repository and tag", imageURI)
+	}
+
+	return repoName, tag, nil
 }
