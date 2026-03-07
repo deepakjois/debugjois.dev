@@ -1,9 +1,13 @@
-Website: https://debugjois.dev
-
 Daily Log: https://debugjois.dev/daily
 
+After checking out repo do the following
+
 ```
-$ cd site && ./debugjois.dev --help
+$ cd site
+
+$ go build
+
+$ ./debugjois.dev --help
 Usage: debugjois.dev <command> [flags]
 
 Flags:
