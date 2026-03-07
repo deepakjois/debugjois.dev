@@ -1,25 +1,3 @@
-Website: https://debugjois.dev
+# debugjois.dev
 
-Daily Log: https://debugjois.dev/daily
-
-```
-$ cd site && ./debugjois.dev --help
-Usage: debugjois.dev <command> [flags]
-
-Flags:
-  -h, --help    Show context-sensitive help.
-
-Commands:
-  build [flags]
-    Build the static site
-
-  sync-notes-obsidian --obsidian-vault=STRING [flags]
-    Sync daily notes from Obsidian vault
-
-  upload [flags]
-    Upload files to S3 bucket
-
-  build-newsletter [flags]
-    Build weekly newsletter from daily notes
-
-```
+Monorepo for [debugjois.dev](https://debugjois.dev) — a personal website and daily log. Contains the static site generator (`site/`), a Lambda backend (`backend/`), and a React frontend (`frontend/`).
