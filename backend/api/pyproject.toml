@@ -11,4 +11,11 @@ dependencies = [
 dev = [
     "fastapi[standard]>=0.115",
     "pytest>=8.0",
+    "ruff>=0.15.5",
 ]
+
+[tool.ruff]
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
