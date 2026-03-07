@@ -8,6 +8,7 @@ import {
   createMemoryHistory,
   Outlet,
   RouterProvider,
+  type RouteComponent,
 } from "@tanstack/react-router";
 
 // ─── QueryClient factory ──────────────────────────────────────────────────────
@@ -38,7 +39,7 @@ export interface CreateTestRouterOptions {
   /** Starting URL. Default '/' */
   initialEntry?: string;
   /** Component rendered at pathPattern. Defaults to a sentinel <div>. */
-  routeComponent?: React.ComponentType;
+  routeComponent?: RouteComponent;
   /** Path pattern for routeComponent. Default '/' */
   pathPattern?: string;
   /**
@@ -46,7 +47,7 @@ export interface CreateTestRouterOptions {
    * - Pass RootComponent from __root.tsx to test the auth gate.
    * - Pass the result of makePreAuthenticatedRoot() to bypass it.
    */
-  rootComponent: React.ComponentType;
+  rootComponent: RouteComponent;
   /** Provide a pre-created QueryClient to inspect cache state after render. */
   queryClient?: QueryClient;
 }
@@ -111,7 +112,7 @@ export async function renderWithRouter(options: CreateTestRouterOptions) {
 // Requires AuthContext to be exported from __root.tsx so the same context object
 // reference is used here and inside the route components under test.
 
-export function makePreAuthenticatedRoot(AuthContext: React.Context<{ token: string } | null>) {
+export function makePreAuthenticatedRoot(AuthContext: React.Context<{ token: string } | null>): RouteComponent {
   return function PreAuthenticatedRoot() {
     return (
       <AuthContext.Provider value={{ token: "fake-test-token" }}>
