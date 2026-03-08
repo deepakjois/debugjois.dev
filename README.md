@@ -1,5 +1,23 @@
 # debugjois.dev
 
-Monorepo for [debugjois.dev](https://debugjois.dev) — a personal website and daily log. Contains the static site generator (`site/`), a Lambda backend (`backend/`), and a React frontend (`frontend/`).
+Monorepo for [debugjois.dev](https://debugjois.dev) and the `/logger` app.
 
-Go code is organized as multiple modules in `site/`, `backend/api/`, and `backend/infra/`, with a shared workspace in `go.work` so editor tooling and local multi-module workflows work cleanly. All Go modules use Go `1.26.1`.
+## Layout
+
+- `site/` - Go static site generator for the main website and daily log
+- `backend/api/` - Go HTTP API that also runs as an AWS Lambda
+- `backend/build-and-push-image.sh` - builds and pushes the Lambda image
+- `infra/` - AWS CDK app and deploy script for backend infrastructure
+- `frontend/` - Vite + React SPA served at `/logger`
+
+## Workspace
+
+Go code is split across `site/`, `backend/api/`, and `infra/`, with a shared
+workspace in `go.work`. All Go modules use Go `1.26.1`.
+
+## Common commands
+
+- Site: `cd site && go build -o debugjois-site . && ./debugjois-site build`
+- Backend API: `cd backend/api && go test ./... && go run .`
+- Frontend: `cd frontend && npm install && npm run dev`
+- Infra deploy: `./infra/deploy.sh --build-image`

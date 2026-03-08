@@ -2,6 +2,6 @@ go 1.26.1
 
 use (
 	./backend/api
-	./backend/infra
+	./infra
 	./site
 )

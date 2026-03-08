@@ -1,20 +1,26 @@
 # Backend API
 
-This directory contains the Go backend API for `debugjois.dev`.
+Go backend API for `debugjois.dev`.
 
-It supports two modes:
+## Modes
+
 - local HTTP server for development
-- AWS Lambda container runtime when `AWS_LAMBDA_RUNTIME_API` is set
+- AWS Lambda runtime when `AWS_LAMBDA_RUNTIME_API` is set
+
+## Endpoints
+
+- `GET /` - returns a simple greeting payload
+- `GET /health` - returns `{ "status": "ok" }` and includes user email when present in Lambda JWT context
 
 ## Requirements
 
 - Go 1.26+
 - Docker Desktop for container builds
-- AWS credentials for push/deploy steps
+- AWS credentials for image push and deploy steps
 
 ## Local development
 
-Run the API locally:
+Run from `backend/api/`:
 
 ```bash
 go run .
@@ -22,7 +28,7 @@ go run .
 
 The server listens on `http://localhost:8000` by default.
 
-Override the port with:
+To override the port:
 
 ```bash
 PORT=9000 go run .
@@ -30,35 +36,33 @@ PORT=9000 go run .
 
 ## Tests
 
-Run all tests:
-
 ```bash
 go test ./...
 ```
 
 ## Build
 
-Build the local binary:
-
 ```bash
 go build .
 ```
 
-## Docker
+## Docker image
 
-Build the Lambda container image locally:
+From the repository root:
 
 ```bash
-docker build -t debugjois-dev-api .
+./backend/build-and-push-image.sh
 ```
 
-The Docker image uses a multi-stage build and a minimal `scratch` final image.
+That script builds the Lambda image from `backend/api/`, pushes it to ECR, and
+prints an immutable `IMAGE_URI`.
 
 ## Deploy
 
 From the repository root:
 
 ```bash
-./backend/build-and-push-image.sh
-./backend/deploy.sh --build-image
+./infra/deploy.sh --build-image
 ```
+
+The CDK app and deploy script live in the top-level `infra/` directory.

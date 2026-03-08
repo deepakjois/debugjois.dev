@@ -16,6 +16,7 @@
 
 # CDK asset staging directory
 .cdk.staging
+.cdk-verify
 cdk.out
 
 # Built binary

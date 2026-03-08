@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -12,6 +13,10 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsecr"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	awscloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	awslambdasdk "github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
 )
@@ -19,6 +24,8 @@ import (
 type InfraStackProps struct {
 	awscdk.StackProps
 }
+
+const stackName = "InfraStack"
 
 func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps) awscdk.Stack {
 	var sprops awscdk.StackProps
@@ -38,12 +45,7 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 		Description:   jsii.String("Keep only last 3 images"),
 	})
 
-	imageURI := os.Getenv("IMAGE_URI")
-	if imageURI == "" {
-		panic("IMAGE_URI must be set to an existing ECR image URI")
-	}
-
-	imageRepoName, imageTagOrDigest, err := parseEcrImageURI(imageURI)
+	imageRepoName, imageTagOrDigest, err := resolveImageReference(context.Background())
 	if err != nil {
 		panic(err)
 	}
@@ -173,7 +175,7 @@ func main() {
 
 	app := awscdk.NewApp(nil)
 
-	NewInfraStack(app, "InfraStack", &InfraStackProps{
+	NewInfraStack(app, stackName, &InfraStackProps{
 		awscdk.StackProps{
 			Env: env(),
 		},
@@ -188,6 +190,74 @@ func env() *awscdk.Environment {
 		Account: jsii.String(os.Getenv("CDK_DEFAULT_ACCOUNT")),
 		Region:  jsii.String(os.Getenv("CDK_DEFAULT_REGION")),
 	}
+}
+
+func resolveImageReference(ctx context.Context) (string, string, error) {
+	imageURI := strings.TrimSpace(os.Getenv("IMAGE_URI"))
+	if imageURI == "" {
+		var err error
+		imageURI, err = lookupDeployedImageURI(ctx)
+		if err != nil {
+			return "", "", fmt.Errorf("resolve lambda image: %w", err)
+		}
+	}
+
+	imageRepoName, imageTagOrDigest, err := parseEcrImageURI(imageURI)
+	if err != nil {
+		return "", "", err
+	}
+
+	return imageRepoName, imageTagOrDigest, nil
+}
+
+func lookupDeployedImageURI(ctx context.Context) (string, error) {
+	region := strings.TrimSpace(os.Getenv("CDK_DEFAULT_REGION"))
+	loadOptions := []func(*config.LoadOptions) error{}
+	if region != "" {
+		loadOptions = append(loadOptions, config.WithRegion(region))
+	}
+
+	cfg, err := config.LoadDefaultConfig(ctx, loadOptions...)
+	if err != nil {
+		return "", fmt.Errorf("load AWS config: %w", err)
+	}
+
+	cloudFormationClient := awscloudformation.NewFromConfig(cfg)
+	stackOutput, err := cloudFormationClient.DescribeStacks(ctx, &awscloudformation.DescribeStacksInput{
+		StackName: aws.String(stackName),
+	})
+	if err != nil {
+		return "", fmt.Errorf("describe stack %s: %w", stackName, err)
+	}
+	if len(stackOutput.Stacks) == 0 {
+		return "", fmt.Errorf("stack %s not found", stackName)
+	}
+
+	functionName := ""
+	for _, output := range stackOutput.Stacks[0].Outputs {
+		if aws.ToString(output.OutputKey) == "LambdaFunctionName" {
+			functionName = aws.ToString(output.OutputValue)
+			break
+		}
+	}
+	if functionName == "" {
+		return "", fmt.Errorf("stack %s does not expose LambdaFunctionName output", stackName)
+	}
+
+	lambdaClient := awslambdasdk.NewFromConfig(cfg)
+	functionOutput, err := lambdaClient.GetFunction(ctx, &awslambdasdk.GetFunctionInput{
+		FunctionName: aws.String(functionName),
+	})
+	if err != nil {
+		return "", fmt.Errorf("get Lambda function %s: %w", functionName, err)
+	}
+
+	imageURI := strings.TrimSpace(aws.ToString(functionOutput.Code.ImageUri))
+	if imageURI == "" {
+		return "", fmt.Errorf("Lambda function %s does not have an image URI", functionName)
+	}
+
+	return imageURI, nil
 }
 
 func parseEcrImageURI(imageURI string) (string, string, error) {
