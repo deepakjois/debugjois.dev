@@ -41,7 +41,6 @@ site/debugjois-dev.bleve/
 # Frontend
 frontend/node_modules
 frontend/dist
-frontend/src/routeTree.gen.ts
 
 __pycache__/
 
