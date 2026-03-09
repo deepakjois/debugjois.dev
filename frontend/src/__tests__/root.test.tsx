@@ -31,6 +31,7 @@ vi.mock("@react-oauth/google", () => ({
 }));
 
 import { RootComponent } from "../routes/__root";
+import { Logger } from "../routes/logger";
 import { renderWithRouter } from "../test/utils";
 
 beforeEach(() => {
@@ -43,7 +44,6 @@ describe("RootComponent - auth gate", () => {
   it("shows login UI when unauthenticated", async () => {
     await renderWithRouter({ rootComponent: RootComponent });
 
-    expect(screen.getByRole("heading", { name: "Logger" })).toBeInTheDocument();
     expect(screen.getByText("Sign in to continue.")).toBeInTheDocument();
     expect(screen.getByTestId("mock-google-login")).toBeInTheDocument();
     expect(screen.queryByTestId("route-content")).not.toBeInTheDocument();
@@ -59,30 +59,38 @@ describe("RootComponent - auth gate", () => {
     expect(screen.queryByTestId("mock-google-login")).not.toBeInTheDocument();
   });
 
-  it("shows sign-out button when authenticated", async () => {
+  it("does not render shared app chrome when authenticated", async () => {
     const user = userEvent.setup();
     await renderWithRouter({ rootComponent: RootComponent });
 
     await user.click(screen.getByTestId("mock-google-login"));
 
-    expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Sign out" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Apps" })).not.toBeInTheDocument();
   });
 
-  it("returns to login screen after sign out", async () => {
+  it("returns to login screen after route-level sign out", async () => {
+    const { googleLogout } = await import("@react-oauth/google");
     const user = userEvent.setup();
-    await renderWithRouter({ rootComponent: RootComponent });
+    await renderWithRouter({
+      rootComponent: RootComponent,
+      routeComponent: Logger,
+      initialEntry: "/logger",
+      pathPattern: "/logger",
+    });
 
     await user.click(screen.getByTestId("mock-google-login"));
     await user.click(screen.getByRole("button", { name: "Sign out" }));
 
     expect(screen.getByTestId("mock-google-login")).toBeInTheDocument();
-    expect(screen.queryByTestId("route-content")).not.toBeInTheDocument();
+    expect(localStorage.getItem("app_auth_token")).toBeNull();
+    expect(googleLogout).toHaveBeenCalledOnce();
   });
 });
 
 describe("RootComponent - localStorage persistence", () => {
   it("shows authenticated UI on mount when token is in localStorage", async () => {
-    localStorage.setItem("logger_auth_token", "stored-token");
+    localStorage.setItem("app_auth_token", "stored-token");
 
     await renderWithRouter({ rootComponent: RootComponent });
 
@@ -96,19 +104,7 @@ describe("RootComponent - localStorage persistence", () => {
 
     await user.click(screen.getByTestId("mock-google-login"));
 
-    expect(localStorage.getItem("logger_auth_token")).toBe("fake-credential-token");
-  });
-
-  it("clears localStorage and calls googleLogout on sign out", async () => {
-    const { googleLogout } = await import("@react-oauth/google");
-    const user = userEvent.setup();
-    await renderWithRouter({ rootComponent: RootComponent });
-
-    await user.click(screen.getByTestId("mock-google-login"));
-    await user.click(screen.getByRole("button", { name: "Sign out" }));
-
-    expect(localStorage.getItem("logger_auth_token")).toBeNull();
-    expect(googleLogout).toHaveBeenCalledOnce();
+    expect(localStorage.getItem("app_auth_token")).toBe("fake-credential-token");
   });
 });
 
@@ -123,17 +119,17 @@ describe("RootComponent - One Tap silent refresh", () => {
     });
 
     expect(screen.getByTestId("route-content")).toBeInTheDocument();
-    expect(localStorage.getItem("logger_auth_token")).toBe("one-tap-token");
+    expect(localStorage.getItem("app_auth_token")).toBe("one-tap-token");
   });
 
   it("updates localStorage when One Tap refreshes an existing token", async () => {
-    localStorage.setItem("logger_auth_token", "old-token");
+    localStorage.setItem("app_auth_token", "old-token");
     await renderWithRouter({ rootComponent: RootComponent });
 
     await act(async () => {
       oneTap.callback?.({ credential: "refreshed-token" } as CredentialResponse);
     });
 
-    expect(localStorage.getItem("logger_auth_token")).toBe("refreshed-token");
+    expect(localStorage.getItem("app_auth_token")).toBe("refreshed-token");
   });
 });

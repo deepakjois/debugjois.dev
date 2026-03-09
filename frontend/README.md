@@ -1,6 +1,6 @@
 # Frontend
 
-React SPA for the `/logger` experience.
+React SPA for authenticated apps under `/app`.
 
 ## Stack
 
@@ -32,9 +32,9 @@ npm run fmt
 
 ## Routing and build output
 
-- Vite `base` is `/logger/`
-- TanStack Router `basepath` is `/logger`
-- production builds are written to `../site/build/logger/`
+- Vite `base` is `/app/`
+- TanStack Router `basepath` is `/app`
+- production builds are written to `../site/build/app/`
 
 ## Environment
 
@@ -62,7 +62,7 @@ cd backend/api && go run .
 cd frontend && npm run dev
 ```
 
-Open `http://localhost:5173/logger/`.
+Open `http://localhost:5173/app/`.
 
 ## Testing notes
 

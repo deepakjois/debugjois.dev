@@ -9,7 +9,7 @@ const queryClient = new QueryClient();
 
 const router = createRouter({
   routeTree,
-  basepath: "/logger",
+  basepath: "/app",
 });
 
 declare module "@tanstack/react-router" {

@@ -112,10 +112,12 @@ export async function renderWithRouter(options: CreateTestRouterOptions) {
 // Requires AuthContext to be exported from __root.tsx so the same context object
 // reference is used here and inside the route components under test.
 
-export function makePreAuthenticatedRoot(AuthContext: React.Context<{ token: string } | null>): RouteComponent {
+export function makePreAuthenticatedRoot(
+  AuthContext: React.Context<{ token: string; signOut: () => void } | null>,
+): RouteComponent {
   return function PreAuthenticatedRoot() {
     return (
-      <AuthContext.Provider value={{ token: "fake-test-token" }}>
+      <AuthContext.Provider value={{ token: "fake-test-token", signOut: () => undefined }}>
         <div data-testid="pre-auth-root">
           <Outlet />
         </div>

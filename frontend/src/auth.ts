@@ -2,6 +2,7 @@ import { createContext, useContext } from "react";
 
 export interface AuthState {
   token: string;
+  signOut: () => void;
 }
 
 export const AuthContext = createContext<AuthState | null>(null);

@@ -3,10 +3,10 @@ import react from "@vitejs/plugin-react";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 
 export default defineConfig({
-  base: "/logger/",
+  base: "/app/",
   plugins: [tanstackRouter({ target: "react", autoCodeSplitting: true }), react()],
   build: {
-    outDir: "../site/build/logger",
+    outDir: "../site/build/app",
     emptyOutDir: true,
   },
 });

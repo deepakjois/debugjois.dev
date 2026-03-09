@@ -20,7 +20,8 @@ backend/
   api/                      # Go HTTP API / Lambda handler
   build-and-push-image.sh   # Build and push backend container image
 infra/                      # AWS CDK app and deploy script
-frontend/                   # Vite + React SPA for /logger
+  cloudfront/               # CloudFront Function source files
+frontend/                   # Vite + React SPA for /app
 .github/
   actions/
   workflows/
@@ -110,17 +111,18 @@ Run these from `infra/` unless the command already includes the path:
 - `infra/infra.go` falls back to the currently deployed Lambda image when `IMAGE_URI` is unset; set `IMAGE_URI` explicitly for deploys that should change the image
 - `infra/deploy.sh` calls `../backend/build-and-push-image.sh` when `--build-image` is used
 - the API URL is emitted as the `ApiUrl` stack output after deploy
+- `infra/cloudfront/domain-redirect-debugjois-dev.js` is the source for the production CloudFront Function that redirects the apex domain and rewrites `/app` SPA routes
 
 ## Frontend
 
-The frontend lives in `frontend/` and is a Vite + React SPA served under `/logger`.
+The frontend lives in `frontend/` and is a Vite + React SPA served under `/app`.
 
 ### Commands
 
 Run these from `frontend/`:
 
-- `npm run dev` - start the dev server at `http://localhost:5173/logger/`
-- `npm run build` - build to `../site/build/logger/`
+- `npm run dev` - start the dev server at `http://localhost:5173/app/`
+- `npm run build` - build to `../site/build/app/`
 - `npm run preview` - preview the production build locally
 - `npm test` - run tests once
 - `npm run test:watch` - run tests in watch mode
@@ -130,11 +132,11 @@ Run these from `frontend/`:
 
 ### Configuration
 
-- Vite `base` is `/logger/`
-- TanStack Router `basepath` is `/logger`
+- Vite `base` is `/app/`
+- TanStack Router `basepath` is `/app`
 - `VITE_SITE_BACKEND_URL` points at the backend API origin
 - `VITE_GOOGLE_CLIENT_ID` configures Google login
-- `VITE_AUTH_BYPASS=true` in `.env.development` enables local auth bypass
+- `VITE_AUTH_BYPASS=true` can be set in `.env.development` to bypass login in local dev
 
 ### Local full-stack development
 

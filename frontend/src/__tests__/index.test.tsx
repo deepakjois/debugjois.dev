@@ -12,13 +12,28 @@ import { server } from "../test/mocks/server";
 import { renderWithRouter, makePreAuthenticatedRoot } from "../test/utils";
 import { AuthContext } from "../auth";
 import { Index } from "../routes/index";
+import { Logger } from "../routes/logger";
+import { Podscriber } from "../routes/podscriber";
 
 // Bypasses the login gate; provides a real AuthContext value so useAuth() succeeds.
 const PreAuthRoot = makePreAuthenticatedRoot(AuthContext);
 
-describe("Index route - health check", () => {
-  it("renders the Check Health button in the idle state", async () => {
+describe("Index route - app launcher", () => {
+  it("renders links to available apps", async () => {
     await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Index });
+
+    expect(screen.getByRole("link", { name: "Open Logger" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open Podscriber" })).toBeInTheDocument();
+  });
+});
+
+describe("Logger route - health check", () => {
+  it("renders the Check Health button in the idle state", async () => {
+    await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Logger });
+
+    expect(screen.getByRole("heading", { name: "Logger" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to apps" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
 
     const button = screen.getByRole("button", { name: "Check Health" });
     expect(button).toBeInTheDocument();
@@ -34,17 +49,17 @@ describe("Index route - health check", () => {
     );
 
     const user = userEvent.setup();
-    await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Index });
+    await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Logger });
 
     await user.click(screen.getByRole("button", { name: "Check Health" }));
 
-    expect(screen.getByRole("button", { name: "Checking…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Checking..." })).toBeDisabled();
   });
 
   it("displays backend status on successful response", async () => {
     // Default handler returns { status: 'ok', email: 'test@example.com' }
     const user = userEvent.setup();
-    await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Index });
+    await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Logger });
 
     await user.click(screen.getByRole("button", { name: "Check Health" }));
 
@@ -59,7 +74,7 @@ describe("Index route - health check", () => {
     );
 
     const user = userEvent.setup();
-    await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Index });
+    await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Logger });
 
     await user.click(screen.getByRole("button", { name: "Check Health" }));
 
@@ -77,10 +92,21 @@ describe("Index route - health check", () => {
     );
 
     const user = userEvent.setup();
-    await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Index });
+    await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Logger });
 
     await user.click(screen.getByRole("button", { name: "Check Health" }));
 
     await waitFor(() => expect(capturedAuth).toBe("Bearer fake-test-token"));
+  });
+});
+
+describe("Podscriber route - placeholder", () => {
+  it("renders placeholder content", async () => {
+    await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Podscriber });
+
+    expect(screen.getByRole("heading", { name: "Podscriber" })).toBeInTheDocument();
+    expect(screen.getByText("Placeholder for the next app.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to apps" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
   });
 });

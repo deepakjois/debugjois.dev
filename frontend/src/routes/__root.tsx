@@ -8,11 +8,11 @@ import {
 } from "@react-oauth/google";
 import { AuthContext } from "../auth";
 
-const STORAGE_KEY = "logger_auth_token";
+const STORAGE_KEY = "app_auth_token";
 
 export function RootComponent() {
-  const [token, setToken] = useState<string | null>(
-    () => import.meta.env.VITE_AUTH_BYPASS === "true" ? "dev" : localStorage.getItem(STORAGE_KEY),
+  const [token, setToken] = useState<string | null>(() =>
+    import.meta.env.VITE_AUTH_BYPASS === "true" ? "dev" : localStorage.getItem(STORAGE_KEY),
   );
 
   function handleCredential(credential: string) {
@@ -39,8 +39,7 @@ export function RootComponent() {
 
   if (!token) {
     return (
-      <div style={{ padding: "2rem" }}>
-        <h1>Logger</h1>
+      <div>
         <p>Sign in to continue.</p>
         <GoogleLogin
           onSuccess={(res: CredentialResponse) => {
@@ -53,23 +52,8 @@ export function RootComponent() {
   }
 
   return (
-    <AuthContext.Provider value={{ token }}>
-      <div style={{ padding: "2rem" }}>
-        <header
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "1rem",
-          }}
-        >
-          <h1 style={{ margin: 0 }}>Logger</h1>
-          {import.meta.env.VITE_AUTH_BYPASS !== "true" && (
-            <button onClick={handleSignOut}>Sign out</button>
-          )}
-        </header>
-        <Outlet />
-      </div>
+    <AuthContext.Provider value={{ token, signOut: handleSignOut }}>
+      <Outlet />
     </AuthContext.Provider>
   );
 }
