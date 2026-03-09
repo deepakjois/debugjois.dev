@@ -13,6 +13,7 @@ runs:
       with:
         go-version-file: 'site/go.mod'
         cache: true
+        cache-dependency-path: 'site/go.sum'
 
     - name: Build
       if: inputs.build == 'true'
