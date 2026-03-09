@@ -27,6 +27,10 @@ frontend/                   # Vite + React SPA for /app
   workflows/
 ```
 
+## Version Control
+
+This repo uses [Jujutsu (`jj`)](https://github.com/jj-vcs/jj) for version control. The `.jj/` directory is present at the root. Use `jj` commands (not `git`) for committing, branching, and history operations.
+
 ## Go Workspace
 
 The repo uses a top-level `go.work` file that includes:
@@ -48,16 +52,25 @@ Run all site commands from `site/`.
 - `./debugjois-site build --dev` - include drafts and scratch content
 - `./debugjois-site build --rebuild` - rebuild the entire archive
 - `./debugjois-site sync-notes-obsidian --obsidian-vault=<path>` - sync daily notes from Obsidian
+- `./debugjois-site sync-notes-obsidian --obsidian-vault=<path> --no-git` - sync without committing
 - `./debugjois-site upload` - upload generated files to S3
+- `./debugjois-site upload --dryrun` - preview upload without writing to S3
+- `./debugjois-site upload --source-dir=<path>` - override source directory
+- `./debugjois-site upload --bucket=<name>` - override S3 bucket
 - `./debugjois-site build-newsletter` - preview the weekly newsletter
 - `./debugjois-site build-newsletter --post` - post newsletter draft to Buttondown
 - `./debugjois-site build-newsletter --post --notify` - post and notify via Resend
 - `go test ./...` - run all site tests
 
+### Environment variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `BUTTONDOWN_API_KEY` | For newsletter posting | Buttondown API key |
+| `RESEND_API_KEY` | For notification emails | Resend API key |
+
 ### Notes
 
-- `BUTTONDOWN_API_KEY` is required for newsletter posting
-- `RESEND_API_KEY` is required for notification email sending
 - `watch.sh` wraps `sync-notes-obsidian` with `viddy`
 - templates live in `site/templates/`, static assets in `site/static/`
 
@@ -80,6 +93,13 @@ Run these from `backend/api/`:
 - `PORT=9000 go run .` - override the local port
 - `go test ./...` - run backend tests
 - `go build .` - build the binary
+
+### Environment variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `PORT` | No (default: `8000`) | HTTP server port for local dev |
+| `AWS_LAMBDA_RUNTIME_API` | In Lambda only | Set automatically by Lambda runtime; switches server to Lambda mode |
 
 ### Image build
 
@@ -106,6 +126,13 @@ Run these from `infra/` unless the command already includes the path:
 - `./infra/deploy.sh` - deploy using the image currently configured on the deployed Lambda
 - `./infra/deploy.sh --build-image` - build and push a new image first, then deploy
 
+### Environment variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `IMAGE_URI` | No | ECR image URI to deploy; falls back to currently deployed Lambda image if unset |
+| `AWS_ROLE_ARN` | For CI | IAM role ARN assumed by GitHub Actions via OIDC |
+
 ### Notes
 
 - `infra/infra.go` falls back to the currently deployed Lambda image when `IMAGE_URI` is unset; set `IMAGE_URI` explicitly for deploys that should change the image
@@ -122,21 +149,30 @@ The frontend lives in `frontend/` and is a Vite + React SPA served under `/app`.
 Run these from `frontend/`:
 
 - `npm run dev` - start the dev server at `http://localhost:5173/app/`
+- `npm run dev:prod-env` - dev server using production env vars
 - `npm run build` - build to `../site/build/app/`
 - `npm run preview` - preview the production build locally
 - `npm test` - run tests once
 - `npm run test:watch` - run tests in watch mode
 - `npm run test:coverage` - generate coverage output
 - `npm run lint` - run oxlint
+- `npm run lint:fix` - auto-fix linting issues
 - `npm run fmt` - format with oxfmt
+- `npm run fmt:check` - check formatting without writing
 
 ### Configuration
 
 - Vite `base` is `/app/`
 - TanStack Router `basepath` is `/app`
-- `VITE_SITE_BACKEND_URL` points at the backend API origin
-- `VITE_GOOGLE_CLIENT_ID` configures Google login
-- `VITE_AUTH_BYPASS=true` can be set in `.env.development` to bypass login in local dev
+- Copy `frontend/.env.example` to `frontend/.env` as a starting point
+
+### Environment variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `VITE_SITE_BACKEND_URL` | Yes | Backend API origin |
+| `VITE_GOOGLE_CLIENT_ID` | Yes | Google OAuth client ID |
+| `VITE_AUTH_BYPASS` | No | Set to `true` in `.env.development` to skip login in local dev |
 
 ### Local full-stack development
 
@@ -150,10 +186,15 @@ cd frontend && npm run dev
 
 ## GitHub Workflows
 
-Current workflows live in `.github/workflows/`:
+Workflows live in `.github/workflows/`:
 
-- `site-build-deploy.yml`
-- `site-govulncheck.yml`
-- `site-latest-deps.yml`
-- `site-newsletter.yml`
-- `claude.yml`
+| Workflow | Trigger | Description |
+|---|---|---|
+| `site-build-deploy.yml` | Daily cron (23:01 UTC) + manual | Build and deploy static site to S3 |
+| `site-test-and-deploy.yml` | Push to `site/**` on main | Run site tests, build, and deploy to S3 |
+| `site-govulncheck.yml` | Push to `site/**` on main | Run `govulncheck` on site module |
+| `site-latest-deps.yml` | Scheduled | Update site Go dependencies |
+| `site-newsletter.yml` | Weekly cron (Sundays 2am UTC) | Post weekly newsletter to Buttondown |
+| `backend-api-test.yml` | Push to `backend/api/**` on main | Run backend Go tests |
+| `frontend-test-deploy.yml` | Push to `frontend/**` on main | Run frontend tests and deploy to S3 |
+| `claude.yml` | Issue/PR comment with `@claude` | Claude Code bot integration |
