@@ -1,0 +1,45 @@
+name: Site Test and Deploy
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'site/**'
+      - 'go.work'
+      - '.github/actions/site-setup-and-build/**'
+      - '.github/workflows/site-test-and-deploy.yml'
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/site-setup-and-build
+        with:
+          build: 'false'
+      - name: Run tests
+        run: go test ./...
+      - name: Restore build cache
+        uses: actions/cache@v5
+        with:
+          path: site/build
+          key: site-build-${{ hashFiles('site/content/**', 'site/templates/**', 'site/static/**') }}
+          restore-keys: |
+            site-build-
+      - name: Build site binary
+        run: go build -o debugjois-site .
+      - name: Build site
+        run: ./debugjois-site build
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-2
+      - name: Upload to S3
+        run: ./debugjois-site upload

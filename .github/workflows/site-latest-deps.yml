@@ -1,7 +1,6 @@
 name: Site Latest Deps Test
 
 on:
-  push:
   pull_request:
   schedule:
     - cron: '22 10 * * *'

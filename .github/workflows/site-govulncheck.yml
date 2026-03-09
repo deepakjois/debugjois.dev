@@ -1,7 +1,6 @@
 name: Site Vulnerability Check
 
 on:
-  push:
   pull_request:
   schedule:
     - cron: '22 10 * * *'
