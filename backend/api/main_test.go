@@ -5,13 +5,38 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
 )
 
+var primaryAllowedEmail = allowedEmails[0]
+
 func TestRoot(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	res := httptest.NewRecorder()
+
+	newHandler().ServeHTTP(res, req)
+
+	if res.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status %d, got %d", http.StatusUnauthorized, res.Code)
+	}
+
+	var body errorResponse
+	if err := json.Unmarshal(res.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+
+	if body.Error != "unauthorized" {
+		t.Fatalf("expected error %q, got %q", "unauthorized", body.Error)
+	}
+
+}
+
+func TestRootAllowedEmail(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req = req.WithContext(context.WithValue(req.Context(), emailContextKey, primaryAllowedEmail))
 	res := httptest.NewRecorder()
 
 	newHandler().ServeHTTP(res, req)
@@ -30,8 +55,51 @@ func TestRoot(t *testing.T) {
 	}
 }
 
+func TestRootDisallowedEmail(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req = req.WithContext(context.WithValue(req.Context(), emailContextKey, "other@example.com"))
+	res := httptest.NewRecorder()
+
+	newHandler().ServeHTTP(res, req)
+
+	if res.Code != http.StatusForbidden {
+		t.Fatalf("expected status %d, got %d", http.StatusForbidden, res.Code)
+	}
+
+	var body errorResponse
+	if err := json.Unmarshal(res.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+
+	if body.Error != "forbidden" {
+		t.Fatalf("expected error %q, got %q", "forbidden", body.Error)
+	}
+}
+
 func TestHealthNoJWTContext(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	res := httptest.NewRecorder()
+
+	newHandler().ServeHTTP(res, req)
+
+	if res.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status %d, got %d", http.StatusUnauthorized, res.Code)
+	}
+
+	var body errorResponse
+	if err := json.Unmarshal(res.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+
+	if body.Error != "unauthorized" {
+		t.Fatalf("expected error %q, got %q", "unauthorized", body.Error)
+	}
+
+}
+
+func TestHealthAllowedEmail(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	req = req.WithContext(context.WithValue(req.Context(), emailContextKey, primaryAllowedEmail))
 	res := httptest.NewRecorder()
 
 	newHandler().ServeHTTP(res, req)
@@ -49,8 +117,41 @@ func TestHealthNoJWTContext(t *testing.T) {
 		t.Fatalf("expected status %q, got %q", "ok", body.Status)
 	}
 
-	if body.Email != nil {
-		t.Fatalf("expected nil email, got %q", *body.Email)
+	if body.Email == nil || *body.Email != primaryAllowedEmail {
+		t.Fatalf("expected email %q, got %#v", primaryAllowedEmail, body.Email)
+	}
+}
+
+func TestHealthAllowedEmailCaseInsensitive(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	req = req.WithContext(context.WithValue(req.Context(), emailContextKey, strings.ToUpper(primaryAllowedEmail)))
+	res := httptest.NewRecorder()
+
+	newHandler().ServeHTTP(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, res.Code)
+	}
+}
+
+func TestHealthDisallowedEmail(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	req = req.WithContext(context.WithValue(req.Context(), emailContextKey, "other@example.com"))
+	res := httptest.NewRecorder()
+
+	newHandler().ServeHTTP(res, req)
+
+	if res.Code != http.StatusForbidden {
+		t.Fatalf("expected status %d, got %d", http.StatusForbidden, res.Code)
+	}
+
+	var body errorResponse
+	if err := json.Unmarshal(res.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+
+	if body.Error != "forbidden" {
+		t.Fatalf("expected error %q, got %q", "forbidden", body.Error)
 	}
 }
 
@@ -83,7 +184,7 @@ func TestLambdaHealthIncludesJWTEmail(t *testing.T) {
 			},
 			Authorizer: &events.APIGatewayV2HTTPRequestContextAuthorizerDescription{
 				JWT: &events.APIGatewayV2HTTPRequestContextAuthorizerJWTDescription{
-					Claims: map[string]string{"email": "test@example.com"},
+					Claims: map[string]string{"email": primaryAllowedEmail},
 				},
 			},
 		},
@@ -103,8 +204,42 @@ func TestLambdaHealthIncludesJWTEmail(t *testing.T) {
 		t.Fatalf("unmarshal response: %v", err)
 	}
 
-	if body.Email == nil || *body.Email != "test@example.com" {
-		t.Fatalf("expected lambda email %q, got %#v", "test@example.com", body.Email)
+	if body.Email == nil || *body.Email != primaryAllowedEmail {
+		t.Fatalf("expected lambda email %q, got %#v", primaryAllowedEmail, body.Email)
+	}
+}
+
+func TestLambdaHealthRejectsDisallowedEmail(t *testing.T) {
+	event := events.APIGatewayV2HTTPRequest{
+		RawPath: "/health",
+		RequestContext: events.APIGatewayV2HTTPRequestContext{
+			HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{
+				Method: http.MethodGet,
+			},
+			Authorizer: &events.APIGatewayV2HTTPRequestContextAuthorizerDescription{
+				JWT: &events.APIGatewayV2HTTPRequestContextAuthorizerJWTDescription{
+					Claims: map[string]string{"email": "test@example.com"},
+				},
+			},
+		},
+	}
+
+	response, err := handleLambdaInvocation(context.Background(), event)
+	if err != nil {
+		t.Fatalf("handle lambda invocation: %v", err)
+	}
+
+	if response.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected status %d, got %d", http.StatusForbidden, response.StatusCode)
+	}
+
+	var body errorResponse
+	if err := json.Unmarshal([]byte(response.Body), &body); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+
+	if body.Error != "forbidden" {
+		t.Fatalf("expected error %q, got %q", "forbidden", body.Error)
 	}
 }
 

@@ -22,6 +22,10 @@ const (
 	helloMessage = "Hello from debugjois.dev Lambda!"
 )
 
+var allowedEmails = []string{
+	"deepak.jois@gmail.com",
+}
+
 type contextKey string
 
 const emailContextKey contextKey = "email"
@@ -65,7 +69,24 @@ func isLambdaRuntime() bool {
 }
 
 func newHandler() http.Handler {
-	return withCORS(http.HandlerFunc(routeRequest))
+	return withCORS(withAllowedUser(http.HandlerFunc(routeRequest)))
+}
+
+func withAllowedUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		email := getEmailFromRequest(r)
+		if email == nil {
+			writeHTTPResponse(w, http.StatusUnauthorized, errorResponse{Error: "unauthorized"})
+			return
+		}
+
+		if !isAllowedEmail(*email) {
+			writeHTTPResponse(w, http.StatusForbidden, errorResponse{Error: "forbidden"})
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func withCORS(next http.Handler) http.Handler {
@@ -117,6 +138,17 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeHTTPResponse(w, http.StatusOK, healthResponse{Status: "ok", Email: getEmailFromRequest(r)})
+}
+
+func isAllowedEmail(email string) bool {
+	normalizedEmail := strings.TrimSpace(email)
+	for _, allowedEmail := range allowedEmails {
+		if strings.EqualFold(normalizedEmail, strings.TrimSpace(allowedEmail)) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func isReadMethod(method string) bool {
