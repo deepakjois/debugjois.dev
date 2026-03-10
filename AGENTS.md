@@ -159,6 +159,11 @@ Run these from `frontend/`:
 - `npm run fmt` - format with oxfmt
 - `npm run fmt:check` - check formatting without writing
 
+### Workflow
+
+- After making changes under `frontend/`, run `npm run fmt` and `npm run lint` before finishing.
+- Then run the narrowest relevant verification command for the change, usually `npm test` or `npm run build`.
+
 ### Configuration
 
 - Vite `base` is `/app/`
