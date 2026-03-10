@@ -5,7 +5,16 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { routeTree } from "./routeTree.gen";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+    mutations: {
+      retry: false,
+    },
+  },
+});
 
 const router = createRouter({
   routeTree,
