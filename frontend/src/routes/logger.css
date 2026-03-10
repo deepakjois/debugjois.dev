@@ -1,0 +1,209 @@
+.logger-editor-page {
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, #2a2824 0 14px, #191d39 14px 100%),
+    linear-gradient(180deg, #191d39 0%, #17182f 100%);
+  color: #dddaf1;
+}
+
+.logger-editor-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #1b1d36;
+}
+
+.logger-editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 56px;
+  padding: 0 22px;
+  border-bottom: 1px solid rgba(103, 99, 143, 0.24);
+  background: rgba(19, 22, 46, 0.98);
+}
+
+.logger-editor-title-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.logger-editor-logo {
+  width: 22px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+
+.logger-editor-logo-outline {
+  stroke: rgba(196, 167, 231, 0.82);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.35;
+}
+
+.logger-editor-title {
+  margin: 0;
+  overflow: hidden;
+  color: #918aa9;
+  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+  font-size: 0.94rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logger-editor-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  color: #ac9ad8;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.logger-editor-toggle:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.logger-editor-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+}
+
+.logger-editor-toggle-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.logger-editor-toggle input:focus-visible + .logger-editor-toggle-icon {
+  outline: 2px solid rgba(143, 185, 255, 0.7);
+  outline-offset: 6px;
+}
+
+.logger-editor-toggle-stroke {
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.35;
+}
+
+.logger-editor-toggle input:not(:checked) + .logger-editor-toggle-icon {
+  color: #716b90;
+}
+
+.logger-editor-pane {
+  flex: 1;
+  min-height: 0;
+}
+
+.logger-editor-codemirror {
+  height: 100%;
+}
+
+.logger-editor-codemirror .cm-editor {
+  height: 100%;
+  background: #1f213c;
+}
+
+.logger-editor-codemirror .cm-scroller {
+  font-family: "JetBrains Mono", "Berkeley Mono", "SF Mono", "Menlo", monospace;
+  font-size: 15px;
+  line-height: 1.7;
+  padding: 28px 0 56px;
+}
+
+.logger-editor-codemirror .cm-content {
+  min-height: 100%;
+  color: #dddaf1;
+  padding: 0 32px 0 34px;
+}
+
+.logger-editor-codemirror .cm-line {
+  padding: 0;
+}
+
+.logger-editor-codemirror .cm-line:first-child {
+  letter-spacing: -0.02em;
+}
+
+.logger-editor-codemirror .cm-activeLine {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.logger-editor-codemirror .cm-selectionBackground,
+.logger-editor-codemirror.cm-focused .cm-selectionBackground,
+.logger-editor-codemirror .cm-content ::selection {
+  background: rgba(140, 126, 188, 0.26) !important;
+}
+
+.logger-editor-codemirror .cm-cursor,
+.logger-editor-codemirror .cm-dropCursor {
+  border-left: 2px solid #c3a8ff;
+}
+
+.logger-editor-codemirror .cm-focused {
+  outline: none;
+}
+
+.logger-editor-codemirror .cm-gutters {
+  display: none;
+}
+
+.logger-editor-codemirror .cm-tooltip {
+  border: 1px solid rgba(103, 99, 143, 0.32);
+  background: #242440;
+  color: #dddaf1;
+}
+
+.logger-editor-codemirror .cm-url,
+.logger-editor-codemirror .cm-link,
+.logger-editor-codemirror .cm-string.cm-url,
+.logger-editor-codemirror .cm-formatting-link,
+.logger-editor-codemirror .cm-link .cm-formatting,
+.logger-editor-codemirror .cm-url .cm-formatting,
+.logger-editor-codemirror .cm-link .cm-punctuation,
+.logger-editor-codemirror .cm-url .cm-punctuation {
+  color: #8fb5ff;
+}
+
+.logger-editor-codemirror .cm-inline-code,
+.logger-editor-codemirror .cm-monospace {
+  border-radius: 4px;
+}
+
+.logger-editor-codemirror .cm-formatting-header {
+  opacity: 0.9;
+}
+
+.logger-editor-codemirror .cm-formatting-list,
+.logger-editor-codemirror .cm-formatting-quote,
+.logger-editor-codemirror .cm-formatting-code {
+  opacity: 0.92;
+}
+
+@media (max-width: 720px) {
+  .logger-editor-toolbar {
+    padding: 0 16px;
+  }
+
+  .logger-editor-codemirror .cm-content {
+    padding: 0 18px 0 20px;
+  }
+
+  .logger-editor-codemirror .cm-scroller {
+    padding-top: 22px;
+  }
+}

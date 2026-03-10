@@ -1,14 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { http, HttpResponse } from "msw";
 
 vi.mock("@react-oauth/google", () => ({
   GoogleOAuthProvider: ({ children }: { children: React.ReactNode }) => children,
   GoogleLogin: () => null,
 }));
 
-import { server } from "../test/mocks/server";
 import { renderWithRouter, makePreAuthenticatedRoot } from "../test/utils";
 import { AuthContext } from "../auth";
 import { Index } from "../routes/index";
@@ -27,76 +25,41 @@ describe("Index route - app launcher", () => {
   });
 });
 
-describe("Logger route - health check", () => {
-  it("renders the Check Health button in the idle state", async () => {
+describe("Logger route - markdown editor", () => {
+  it("renders the editor shell with sample markdown", async () => {
     await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Logger });
 
-    expect(screen.getByRole("heading", { name: "Logger" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to apps" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
-
-    const button = screen.getByRole("button", { name: "Check Health" });
-    expect(button).toBeInTheDocument();
-    expect(button).not.toBeDisabled();
-    expect(screen.queryByText(/Backend status/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Error/)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Welcome.md" })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Wrap" })).toBeChecked();
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
+    expect(screen.getByText("Welcome to the source editor.")).toBeInTheDocument();
+    expect(screen.getByText("Markdown Guide")).toBeInTheDocument();
   });
 
-  it("shows loading state while the request is in flight", async () => {
-    server.use(
-      // Never resolves — simulates a slow/hung network request
-      http.get("http://localhost:3000/health", () => new Promise(() => undefined)),
-    );
-
+  it("toggles word wrap on and off", async () => {
     const user = userEvent.setup();
     await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Logger });
 
-    await user.click(screen.getByRole("button", { name: "Check Health" }));
+    expect(screen.getByRole("textbox")).toHaveClass("cm-lineWrapping");
 
-    expect(screen.getByRole("button", { name: "Checking..." })).toBeDisabled();
+    await user.click(screen.getByRole("checkbox", { name: "Wrap" }));
+
+    await waitFor(() => expect(screen.getByRole("textbox")).not.toHaveClass("cm-lineWrapping"));
   });
 
-  it("displays backend status on successful response", async () => {
-    // Default handler returns { status: 'ok', email: 'test@example.com' }
+  it("updates the wrap control state when toggled back on", async () => {
     const user = userEvent.setup();
     await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Logger });
 
-    await user.click(screen.getByRole("button", { name: "Check Health" }));
+    const wrapToggle = screen.getByRole("checkbox", { name: "Wrap" });
 
-    await waitFor(() =>
-      expect(screen.getByText("Backend status: ok (user: test@example.com)")).toBeInTheDocument(),
-    );
-  });
+    await user.click(wrapToggle);
+    await waitFor(() => expect(screen.getByRole("textbox")).not.toHaveClass("cm-lineWrapping"));
 
-  it("displays error message on HTTP failure", async () => {
-    server.use(
-      http.get("http://localhost:3000/health", () => new HttpResponse(null, { status: 503 })),
-    );
+    await user.click(screen.getByRole("checkbox", { name: "Wrap" }));
 
-    const user = userEvent.setup();
-    await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Logger });
-
-    await user.click(screen.getByRole("button", { name: "Check Health" }));
-
-    await waitFor(() => expect(screen.getByText(/Error: HTTP 503/)).toBeInTheDocument());
-  });
-
-  it("sends Authorization header with the auth token", async () => {
-    let capturedAuth: string | null = null;
-
-    server.use(
-      http.get("http://localhost:3000/health", ({ request }) => {
-        capturedAuth = request.headers.get("Authorization");
-        return HttpResponse.json({ status: "ok" });
-      }),
-    );
-
-    const user = userEvent.setup();
-    await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Logger });
-
-    await user.click(screen.getByRole("button", { name: "Check Health" }));
-
-    await waitFor(() => expect(capturedAuth).toBe("Bearer fake-test-token"));
+    await waitFor(() => expect(screen.getByRole("textbox")).toHaveClass("cm-lineWrapping"));
+    expect(screen.getByRole("checkbox", { name: "Wrap" })).toBeChecked();
   });
 });
 

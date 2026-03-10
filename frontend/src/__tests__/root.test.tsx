@@ -31,7 +31,6 @@ vi.mock("@react-oauth/google", () => ({
 }));
 
 import { RootComponent } from "../routes/__root";
-import { Logger } from "../routes/logger";
 import { renderWithRouter } from "../test/utils";
 
 beforeEach(() => {
@@ -69,23 +68,6 @@ describe("RootComponent - auth gate", () => {
     expect(screen.queryByRole("heading", { name: "Apps" })).not.toBeInTheDocument();
   });
 
-  it("returns to login screen after route-level sign out", async () => {
-    const { googleLogout } = await import("@react-oauth/google");
-    const user = userEvent.setup();
-    await renderWithRouter({
-      rootComponent: RootComponent,
-      routeComponent: Logger,
-      initialEntry: "/logger",
-      pathPattern: "/logger",
-    });
-
-    await user.click(screen.getByTestId("mock-google-login"));
-    await user.click(screen.getByRole("button", { name: "Sign out" }));
-
-    expect(screen.getByTestId("mock-google-login")).toBeInTheDocument();
-    expect(localStorage.getItem("app_auth_token")).toBeNull();
-    expect(googleLogout).toHaveBeenCalledOnce();
-  });
 });
 
 describe("RootComponent - localStorage persistence", () => {
