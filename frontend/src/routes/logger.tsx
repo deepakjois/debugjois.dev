@@ -1,11 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { createFileRoute } from "@tanstack/react-router";
+import { useAuth } from "../auth";
 import "./logger.css";
+
+const API_URL = import.meta.env.VITE_SITE_BACKEND_URL;
+type LoadState = "checking" | "ready" | "unauthenticated" | "forbidden" | "error";
 
 const SAMPLE_MARKDOWN = `# Meeting Notes
 
@@ -104,13 +108,41 @@ function WrapIcon() {
   );
 }
 
+type StatusScreenProps = {
+  eyebrow: string;
+  title: string;
+  message?: string | null;
+  tone?: "default" | "error";
+};
+
+function StatusScreen({ eyebrow, title, message, tone = "default" }: StatusScreenProps) {
+  return (
+    <div className="logger-editor-status">
+      <div className="logger-editor-status-card">
+        <p className="logger-editor-status-label">{eyebrow}</p>
+        <h1 className="logger-editor-status-title">{title}</h1>
+        {message ? (
+          <p
+            className={`logger-editor-status-message${tone === "error" ? " is-error" : ""}`}
+          >
+            {message}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/logger")({
   component: Logger,
 });
 
 export function Logger() {
+  const { token, signOut } = useAuth();
   const [value, setValue] = useState(SAMPLE_MARKDOWN);
   const [wrapEnabled, setWrapEnabled] = useState(true);
+  const [loadState, setLoadState] = useState<LoadState>("checking");
+  const [loadMessage, setLoadMessage] = useState<string | null>(null);
 
   const extensions = useMemo(() => {
     const baseExtensions = [markdown(), syntaxHighlighting(loggerHighlightStyle)];
@@ -121,6 +153,86 @@ export function Logger() {
 
     return baseExtensions;
   }, [wrapEnabled]);
+
+  useEffect(() => {
+    if (import.meta.env.VITE_AUTH_BYPASS === "true") {
+      setLoadState("ready");
+      setLoadMessage(null);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function loadInitialData() {
+      setLoadState("checking");
+      setLoadMessage(null);
+
+      try {
+        const res = await fetch(`${API_URL}/health`, {
+          signal: controller.signal,
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+          setLoadState("ready");
+          return;
+        }
+
+        if (res.status === 401) {
+          setLoadState("unauthenticated");
+          return;
+        }
+
+        if (res.status === 403) {
+          setLoadState("forbidden");
+          setLoadMessage("Unauthorized access. Sign in with an approved account.");
+          return;
+        }
+
+        setLoadState("error");
+        setLoadMessage(`Could not load editor data (HTTP ${res.status}).`);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setLoadState("error");
+        setLoadMessage("Could not reach the backend.");
+      }
+    }
+
+    void loadInitialData();
+
+    return () => controller.abort();
+  }, [token]);
+
+  useEffect(() => {
+    if (loadState === "unauthenticated") {
+      signOut();
+    }
+  }, [loadState, signOut]);
+
+  if (loadState === "checking") {
+    return <StatusScreen eyebrow="Logger" title="Loading editor..." />;
+  }
+
+  if (loadState === "unauthenticated") {
+    return (
+      <StatusScreen
+        eyebrow="Logger"
+        title="Sign in to continue."
+        message="Use an approved Google account to open the editor."
+      />
+    );
+  }
+
+  if (loadState === "forbidden" || loadState === "error") {
+    return (
+      <StatusScreen
+        eyebrow="Logger"
+        title="Could not open the editor."
+        message={loadMessage}
+        tone="error"
+      />
+    );
+  }
 
   return (
     <div className="logger-editor-page">

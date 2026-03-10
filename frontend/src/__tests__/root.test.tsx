@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen, act } from "@testing-library/react";
+import { screen, act, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { CredentialResponse } from "@react-oauth/google";
 
@@ -52,6 +52,7 @@ describe("RootComponent - auth gate", () => {
     const user = userEvent.setup();
     await renderWithRouter({ rootComponent: RootComponent });
 
+    expect(screen.getByText("Sign in to continue.")).toBeInTheDocument();
     await user.click(screen.getByTestId("mock-google-login"));
 
     expect(screen.getByTestId("route-content")).toBeInTheDocument();
@@ -62,8 +63,10 @@ describe("RootComponent - auth gate", () => {
     const user = userEvent.setup();
     await renderWithRouter({ rootComponent: RootComponent });
 
+    expect(screen.getByText("Sign in to continue.")).toBeInTheDocument();
     await user.click(screen.getByTestId("mock-google-login"));
 
+    expect(screen.getByTestId("route-content")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Sign out" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Apps" })).not.toBeInTheDocument();
   });
@@ -75,6 +78,7 @@ describe("RootComponent - localStorage persistence", () => {
 
     await renderWithRouter({ rootComponent: RootComponent });
 
+    await waitFor(() => expect(screen.queryByText("Checking sign-in...")).not.toBeInTheDocument());
     expect(screen.getByTestId("route-content")).toBeInTheDocument();
     expect(screen.queryByTestId("mock-google-login")).not.toBeInTheDocument();
   });
@@ -83,6 +87,7 @@ describe("RootComponent - localStorage persistence", () => {
     const user = userEvent.setup();
     await renderWithRouter({ rootComponent: RootComponent });
 
+    expect(screen.getByText("Sign in to continue.")).toBeInTheDocument();
     await user.click(screen.getByTestId("mock-google-login"));
 
     expect(localStorage.getItem("app_auth_token")).toBe("fake-credential-token");
@@ -112,5 +117,16 @@ describe("RootComponent - One Tap silent refresh", () => {
     });
 
     expect(localStorage.getItem("app_auth_token")).toBe("refreshed-token");
+  });
+
+  it("clears an invalid stored token and shows sign-in", async () => {
+    localStorage.setItem("app_auth_token", "wrong-user-token");
+
+    await renderWithRouter({ rootComponent: RootComponent });
+
+    await waitFor(() => expect(screen.queryByText("Checking sign-in...")).not.toBeInTheDocument());
+    expect(screen.getByText("Unauthorized access. Sign in with an approved account.")).toBeInTheDocument();
+    expect(screen.getByTestId("mock-google-login")).toBeInTheDocument();
+    expect(localStorage.getItem("app_auth_token")).toBeNull();
   });
 });

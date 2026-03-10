@@ -4,8 +4,17 @@ import { http, HttpResponse } from "msw";
 const BASE_URL = "http://localhost:3000";
 
 export const handlers = [
-  // Default happy-path handler. Override per-test with server.use() for error/slow cases.
-  http.get(`${BASE_URL}/health`, () =>
-    HttpResponse.json({ status: "ok", email: "test@example.com" }),
-  ),
+  http.get(`${BASE_URL}/health`, ({ request }) => {
+    const authHeader = request.headers.get("Authorization");
+
+    if (!authHeader) {
+      return HttpResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
+    if (authHeader === "Bearer wrong-user-token") {
+      return HttpResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+
+    return HttpResponse.json({ status: "ok", email: "test@example.com" });
+  }),
 ];

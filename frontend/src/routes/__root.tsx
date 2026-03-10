@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import {
   GoogleLogin,
@@ -9,50 +9,133 @@ import {
 import { AuthContext } from "../auth";
 
 const STORAGE_KEY = "app_auth_token";
+const API_URL = import.meta.env.VITE_SITE_BACKEND_URL;
+
+type AuthStatus = "checking" | "ready" | "unauthenticated" | "forbidden" | "error";
 
 export function RootComponent() {
-  const [token, setToken] = useState<string | null>(() =>
-    import.meta.env.VITE_AUTH_BYPASS === "true" ? "dev" : localStorage.getItem(STORAGE_KEY),
+  const bypassAuth = import.meta.env.VITE_AUTH_BYPASS === "true";
+  const initialToken = bypassAuth ? "dev" : localStorage.getItem(STORAGE_KEY);
+  const [token, setToken] = useState<string | null>(initialToken);
+  const [authStatus, setAuthStatus] = useState<AuthStatus>(
+    bypassAuth ? "ready" : initialToken ? "checking" : "unauthenticated",
   );
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
 
   function handleCredential(credential: string) {
     localStorage.setItem(STORAGE_KEY, credential);
     setToken(credential);
+    setAuthStatus("checking");
+    setAuthMessage(null);
   }
 
   function handleSignOut() {
     localStorage.removeItem(STORAGE_KEY);
     googleLogout();
     setToken(null);
+    setAuthStatus("unauthenticated");
+    setAuthMessage(null);
   }
 
-  // Runs once on mount. With auto_select: true, Google silently signs in the
-  // user if they still have an active Google session — no UI shown.
-  // disabled: !!token avoids an unnecessary prompt when already authenticated.
+  useEffect(() => {
+    if (bypassAuth) {
+      setAuthStatus("ready");
+      setAuthMessage(null);
+      return;
+    }
+
+    if (!token) {
+      if (authStatus === "checking") {
+        setAuthStatus("unauthenticated");
+      }
+      return;
+    }
+
+    if (authStatus !== "checking") {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function validateToken() {
+      try {
+        const res = await fetch(`${API_URL}/health`, {
+          signal: controller.signal,
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+          setAuthStatus("ready");
+          return;
+        }
+
+        localStorage.removeItem(STORAGE_KEY);
+        setToken(null);
+
+        if (res.status === 403) {
+          setAuthStatus("forbidden");
+          setAuthMessage("Unauthorized access. Sign in with an approved account.");
+          return;
+        }
+
+        setAuthStatus("unauthenticated");
+        setAuthMessage(null);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setAuthStatus("error");
+        setAuthMessage("Could not reach the backend.");
+      }
+    }
+
+    void validateToken();
+
+    return () => controller.abort();
+  }, [authStatus, bypassAuth, token]);
+
   useGoogleOneTapLogin({
     onSuccess: (res: CredentialResponse) => {
       if (res.credential) handleCredential(res.credential);
     },
-    auto_select: true,
-    disabled: import.meta.env.VITE_AUTH_BYPASS === "true" || !!token,
+    disabled: bypassAuth || authStatus === "checking" || !!token,
   });
 
-  if (!token) {
+  if (authStatus !== "ready") {
     return (
-      <div>
-        <p>Sign in to continue.</p>
-        <GoogleLogin
-          onSuccess={(res: CredentialResponse) => {
-            if (res.credential) handleCredential(res.credential);
-          }}
-          onError={() => console.error("Google login failed")}
-        />
+      <div className="app-auth-page">
+        <div className="app-auth-shell">
+          <div className="app-auth-copy">
+            <p className="app-auth-eyebrow">debugjois.dev apps</p>
+            <h1 className="app-auth-title">
+              {authStatus === "checking" ? "Checking sign-in..." : "Sign in to continue."}
+            </h1>
+            {authMessage ? <p className="app-auth-message">{authMessage}</p> : null}
+          </div>
+          {authStatus !== "checking" ? (
+            <div className="app-auth-action">
+              <GoogleLogin
+                onSuccess={(res: CredentialResponse) => {
+                  if (res.credential) handleCredential(res.credential);
+                }}
+                onError={() => console.error("Google login failed")}
+              />
+            </div>
+          ) : null}
+        </div>
       </div>
     );
   }
 
+  const readyToken = token;
+
+  if (!readyToken) {
+    return null;
+  }
+
   return (
-    <AuthContext.Provider value={{ token, signOut: handleSignOut }}>
+    <AuthContext.Provider value={{ token: readyToken, signOut: handleSignOut }}>
       <Outlet />
     </AuthContext.Provider>
   );
