@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { createFileRoute } from "@tanstack/react-router";
@@ -65,6 +64,7 @@ const loggerHighlightStyle = HighlightStyle.define([
   { tag: tags.strong, color: "#f4d3c2", fontWeight: "700" },
   { tag: tags.emphasis, color: "#d6cbff", fontStyle: "italic" },
   { tag: tags.link, color: "#91b4ff", textDecoration: "underline" },
+  { tag: tags.labelName, color: "#91b4ff", textDecoration: "underline" },
   { tag: tags.url, color: "#84aefc" },
   { tag: tags.monospace, color: "#e8a7ab", backgroundColor: "rgba(255, 255, 255, 0.045)" },
   { tag: tags.quote, color: "#95d0d8", fontStyle: "italic" },
@@ -79,12 +79,7 @@ const loggerHighlightStyle = HighlightStyle.define([
 
 function NoteLogo() {
   return (
-    <svg
-      aria-hidden="true"
-      className="logger-editor-logo"
-      viewBox="0 0 24 24"
-      fill="none"
-    >
+    <svg aria-hidden="true" className="logger-editor-logo" viewBox="0 0 24 24" fill="none">
       <path
         d="M12 2.75 4 7.25v9.5l8 4.5 8-4.5v-9.5l-8-4.5Z"
         className="logger-editor-logo-outline"
@@ -100,7 +95,10 @@ function WrapIcon() {
     <svg aria-hidden="true" className="logger-editor-toggle-icon" viewBox="0 0 16 16" fill="none">
       <path d="M2.25 3.5h11.5" className="logger-editor-toggle-stroke" />
       <path d="M2.25 7.25h8.25" className="logger-editor-toggle-stroke" />
-      <path d="M10.5 7.25h1.25c1.1 0 2 .9 2 2v.5c0 1.1-.9 2-2 2H6.75" className="logger-editor-toggle-stroke" />
+      <path
+        d="M10.5 7.25h1.25c1.1 0 2 .9 2 2v.5c0 1.1-.9 2-2 2H6.75"
+        className="logger-editor-toggle-stroke"
+      />
       <path d="m8.5 10.25-1.75 1.5 1.75 1.5" className="logger-editor-toggle-stroke" />
     </svg>
   );
@@ -154,7 +152,6 @@ export function Logger() {
             extensions={extensions}
             height="100%"
             onChange={setValue}
-            theme={oneDark}
             value={value}
           />
         </div>

@@ -65,7 +65,9 @@
   border-radius: 6px;
   color: #ac9ad8;
   cursor: pointer;
-  transition: background-color 120ms ease, color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
 }
 
 .logger-editor-toggle:hover {

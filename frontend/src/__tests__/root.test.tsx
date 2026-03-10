@@ -67,7 +67,6 @@ describe("RootComponent - auth gate", () => {
     expect(screen.queryByRole("button", { name: "Sign out" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Apps" })).not.toBeInTheDocument();
   });
-
 });
 
 describe("RootComponent - localStorage persistence", () => {
