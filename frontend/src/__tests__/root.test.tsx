@@ -125,7 +125,9 @@ describe("RootComponent - One Tap silent refresh", () => {
     await renderWithRouter({ rootComponent: RootComponent });
 
     await waitFor(() => expect(screen.queryByText("Checking sign-in...")).not.toBeInTheDocument());
-    expect(screen.getByText("Unauthorized access. Sign in with an approved account.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Unauthorized access. Sign in with an approved account."),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("mock-google-login")).toBeInTheDocument();
     expect(localStorage.getItem("app_auth_token")).toBeNull();
   });

@@ -122,9 +122,7 @@ function StatusScreen({ eyebrow, title, message, tone = "default" }: StatusScree
         <p className="logger-editor-status-label">{eyebrow}</p>
         <h1 className="logger-editor-status-title">{title}</h1>
         {message ? (
-          <p
-            className={`logger-editor-status-message${tone === "error" ? " is-error" : ""}`}
-          >
+          <p className={`logger-editor-status-message${tone === "error" ? " is-error" : ""}`}>
             {message}
           </p>
         ) : null}
