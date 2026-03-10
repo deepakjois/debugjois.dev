@@ -5,7 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 API_DIR="${SCRIPT_DIR}/api"
 REPOSITORY_NAME="${ECR_REPOSITORY_NAME:-debugjois-dev}"
-IMAGE_TAG="${IMAGE_TAG:-$(date +%Y%m%d-%H%M%S)-$(git -C "${SCRIPT_DIR}/.." rev-parse --short HEAD)}"
+IMAGE_TAG="debugjois-dev-backend-api-$(date +%Y%m%d-%H%M%S)"
 
 AWS_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-}}"
 if [[ -z "${AWS_REGION}" ]]; then
