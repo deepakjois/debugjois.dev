@@ -20,4 +20,5 @@ workspace in `go.work`. All Go modules use Go `1.26.1`.
 - Site: `cd site && go build -o debugjois-site . && ./debugjois-site build`
 - Backend API: `cd backend/api && go test ./... && go run .`
 - Frontend: `cd frontend && npm install && npm run dev`
-- Infra deploy: `./infra/deploy.sh --build-image`
+- Infra deploy: `./infra/deploy.sh`
+- Infra deploy with fresh image: `./infra/deploy.sh --build-image`

@@ -121,7 +121,7 @@ The CDK app lives in `infra/`.
 Run these from `infra/` unless the command already includes the path:
 
 - `cdk diff` - preview infrastructure changes
-- `IMAGE_URI=<ecr-image-uri-or-digest> cdk deploy --require-approval never` - deploy with an explicit image
+- `cdk --app 'go mod download && go run infra.go --image-uri <ecr-image-uri-or-digest>' deploy --require-approval never` - deploy with an explicit image
 - `cdk synth` - synthesize the CloudFormation template
 - `./infra/deploy.sh` - deploy using the image currently configured on the deployed Lambda
 - `./infra/deploy.sh --build-image` - build and push a new image first, then deploy
@@ -130,13 +130,12 @@ Run these from `infra/` unless the command already includes the path:
 
 | Variable | Required | Description |
 |---|---|---|
-| `IMAGE_URI` | No | ECR image URI to deploy; falls back to currently deployed Lambda image if unset |
 | `AWS_ROLE_ARN` | For CI | IAM role ARN assumed by GitHub Actions via OIDC |
 
 ### Notes
 
-- `infra/infra.go` falls back to the currently deployed Lambda image when `IMAGE_URI` is unset; set `IMAGE_URI` explicitly for deploys that should change the image
-- `infra/deploy.sh` calls `../backend/build-and-push-image.sh` when `--build-image` is used
+- `infra/infra.go` falls back to the currently deployed Lambda image when no `--image-uri` argument is provided
+- `infra/deploy.sh` calls `../backend/build-and-push-image.sh` when `--build-image` is used and passes the resulting image URI directly to `infra.go`
 - the API URL is emitted as the `ApiUrl` stack output after deploy
 - `infra/cloudfront/domain-redirect-debugjois-dev.js` is the source for the production CloudFront Function that redirects the apex domain and rewrites `/app` SPA routes
 

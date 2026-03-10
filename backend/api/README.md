@@ -65,4 +65,7 @@ From the repository root:
 ./infra/deploy.sh --build-image
 ```
 
+That command builds and pushes a new image, then passes the resulting immutable
+image URI directly to `infra.go` during `cdk deploy`.
+
 The CDK app and deploy script live in the top-level `infra/` directory.

@@ -5,6 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INFRA_DIR="${SCRIPT_DIR}"
 BUILD_SCRIPT="${SCRIPT_DIR}/../backend/build-and-push-image.sh"
+DEFAULT_APP_COMMAND="go mod download && go run infra.go"
 BUILD_IMAGE=0
 DEPLOY_ARGS=()
 
@@ -42,7 +43,8 @@ cd "${INFRA_DIR}"
 if (( BUILD_IMAGE )); then
   IMAGE_URI="$(${BUILD_SCRIPT})"
   echo "Deploying with ${IMAGE_URI}" >&2
-  IMAGE_URI="${IMAGE_URI}" cdk deploy --require-approval never "${DEPLOY_ARGS[@]}"
+  printf -v IMAGE_URI_ARG '%q' "${IMAGE_URI}"
+  cdk --app "${DEFAULT_APP_COMMAND} --image-uri ${IMAGE_URI_ARG}" deploy --require-approval never "${DEPLOY_ARGS[@]}"
 else
   echo "Deploying with the currently deployed Lambda image" >&2
   cdk deploy --require-approval never "${DEPLOY_ARGS[@]}"

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -23,14 +24,17 @@ import (
 
 type InfraStackProps struct {
 	awscdk.StackProps
+	ImageURI string
 }
 
 const stackName = "InfraStack"
 
 func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps) awscdk.Stack {
 	var sprops awscdk.StackProps
+	imageURI := ""
 	if props != nil {
 		sprops = props.StackProps
+		imageURI = props.ImageURI
 	}
 	stack := awscdk.NewStack(scope, &id, &sprops)
 
@@ -45,7 +49,7 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 		Description:   jsii.String("Keep only last 3 images"),
 	})
 
-	imageRepoName, imageTagOrDigest, err := resolveImageReference(context.Background())
+	imageRepoName, imageTagOrDigest, err := resolveImageReference(context.Background(), imageURI)
 	if err != nil {
 		panic(err)
 	}
@@ -173,12 +177,16 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 func main() {
 	defer jsii.Close()
 
+	imageURI := flag.String("image-uri", "", "Explicit ECR image URI to deploy")
+	flag.Parse()
+
 	app := awscdk.NewApp(nil)
 
 	NewInfraStack(app, stackName, &InfraStackProps{
-		awscdk.StackProps{
+		StackProps: awscdk.StackProps{
 			Env: env(),
 		},
+		ImageURI: *imageURI,
 	})
 
 	app.Synth(nil)
@@ -192,8 +200,8 @@ func env() *awscdk.Environment {
 	}
 }
 
-func resolveImageReference(ctx context.Context) (string, string, error) {
-	imageURI := strings.TrimSpace(os.Getenv("IMAGE_URI"))
+func resolveImageReference(ctx context.Context, explicitImageURI string) (string, string, error) {
+	imageURI := strings.TrimSpace(explicitImageURI)
 	if imageURI == "" {
 		var err error
 		imageURI, err = lookupDeployedImageURI(ctx)
@@ -263,26 +271,26 @@ func lookupDeployedImageURI(ctx context.Context) (string, error) {
 func parseEcrImageURI(imageURI string) (string, string, error) {
 	parts := strings.SplitN(imageURI, "/", 2)
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("invalid IMAGE_URI %q: expected ECR URI", imageURI)
+		return "", "", fmt.Errorf("invalid image URI %q: expected ECR URI", imageURI)
 	}
 
 	repoAndRef := parts[1]
 	if repoParts := strings.SplitN(repoAndRef, "@", 2); len(repoParts) == 2 {
 		if repoParts[0] == "" || repoParts[1] == "" {
-			return "", "", fmt.Errorf("invalid IMAGE_URI %q: expected repository and digest", imageURI)
+			return "", "", fmt.Errorf("invalid image URI %q: expected repository and digest", imageURI)
 		}
 		return repoParts[0], repoParts[1], nil
 	}
 
 	lastColon := strings.LastIndex(repoAndRef, ":")
 	if lastColon == -1 {
-		return "", "", fmt.Errorf("invalid IMAGE_URI %q: expected tag or digest", imageURI)
+		return "", "", fmt.Errorf("invalid image URI %q: expected tag or digest", imageURI)
 	}
 
 	repoName := repoAndRef[:lastColon]
 	tag := repoAndRef[lastColon+1:]
 	if repoName == "" || tag == "" {
-		return "", "", fmt.Errorf("invalid IMAGE_URI %q: expected repository and tag", imageURI)
+		return "", "", fmt.Errorf("invalid image URI %q: expected repository and tag", imageURI)
 	}
 
 	return repoName, tag, nil
