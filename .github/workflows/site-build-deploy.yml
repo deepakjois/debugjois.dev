@@ -19,8 +19,6 @@ jobs:
     - uses: actions/checkout@v6
 
     - uses: ./.github/actions/site-setup-and-build
-      with:
-        build: 'false'
 
     - name: Run tests
       run: go test ./...
