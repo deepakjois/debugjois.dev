@@ -18,12 +18,12 @@ const (
 
 func main() {
 	ctx := context.Background()
+	app := NewAppHandler()
 	if isLambdaRuntime() {
 		if err := loadLambdaGitHubToken(ctx); err != nil {
 			log.Fatal(err)
 		}
 
-		app := NewAppHandler()
 		lambda.Start(newLambdaHandler(app))
 		return
 	}
@@ -32,7 +32,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	app := NewAppHandler()
 	port := strings.TrimSpace(os.Getenv("PORT"))
 	if port == "" {
 		port = defaultPort
