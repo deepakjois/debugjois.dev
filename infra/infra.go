@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsecr"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awssecretsmanager"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	awscloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation"
@@ -28,6 +29,7 @@ type InfraStackProps struct {
 }
 
 const stackName = "InfraStack"
+const githubPATSecretName = "debugjois-dev/github-pat"
 
 func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps) awscdk.Stack {
 	var sprops awscdk.StackProps
@@ -48,6 +50,18 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 		MaxImageCount: jsii.Number(3),
 		Description:   jsii.String("Keep only last 3 images"),
 	})
+
+	githubPATSecret := awssecretsmanager.NewCfnSecret(stack, jsii.String("GitHubPatSecret"), &awssecretsmanager.CfnSecretProps{
+		Name:        jsii.String(githubPATSecretName),
+		Description: jsii.String("GitHub personal access token for the debugjois.dev backend"),
+	})
+	githubPATSecret.ApplyRemovalPolicy(awscdk.RemovalPolicy_DESTROY, nil)
+
+	githubPATSecretRef := awssecretsmanager.Secret_FromSecretCompleteArn(
+		stack,
+		jsii.String("GitHubPatSecretRef"),
+		githubPATSecret.AttrId(),
+	)
 
 	imageRepoName, imageTagOrDigest, err := resolveImageReference(context.Background(), imageURI)
 	if err != nil {
@@ -87,7 +101,11 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 		MemorySize:   jsii.Number(512),
 		Timeout:      awscdk.Duration_Seconds(jsii.Number(30)),
 		Description:  jsii.String("debugjois.dev Lambda function"),
+		Environment: &map[string]*string{
+			"GITHUB_PAT_SECRET_ARN": githubPATSecret.AttrId(),
+		},
 	})
+	githubPATSecretRef.GrantRead(fn, nil)
 
 	// Create HTTP API Gateway with Lambda proxy integration
 	lambdaIntegration := awsapigatewayv2integrations.NewHttpLambdaIntegration(
@@ -161,6 +179,14 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 	awscdk.NewCfnOutput(stack, jsii.String("EcrRepositoryUri"), &awscdk.CfnOutputProps{
 		Value:       repo.RepositoryUri(),
 		Description: jsii.String("ECR repository URI"),
+	})
+	awscdk.NewCfnOutput(stack, jsii.String("GitHubPatSecretArn"), &awscdk.CfnOutputProps{
+		Value:       githubPATSecret.AttrId(),
+		Description: jsii.String("Secrets Manager ARN for the GitHub PAT"),
+	})
+	awscdk.NewCfnOutput(stack, jsii.String("GitHubPatSecretName"), &awscdk.CfnOutputProps{
+		Value:       jsii.String(githubPATSecretName),
+		Description: jsii.String("Secrets Manager name for the GitHub PAT"),
 	})
 	awscdk.NewCfnOutput(stack, jsii.String("GitHubActionsRoleArn"), &awscdk.CfnOutputProps{
 		Value:       githubActionsRole.RoleArn(),

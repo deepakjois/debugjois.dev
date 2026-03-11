@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -16,12 +17,22 @@ const (
 )
 
 func main() {
-	app := NewAppHandler()
+	ctx := context.Background()
 	if isLambdaRuntime() {
+		if err := loadLambdaGitHubToken(ctx); err != nil {
+			log.Fatal(err)
+		}
+
+		app := NewAppHandler()
 		lambda.Start(newLambdaHandler(app))
 		return
 	}
 
+	if err := loadLocalEnvFile(); err != nil {
+		log.Fatal(err)
+	}
+
+	app := NewAppHandler()
 	port := strings.TrimSpace(os.Getenv("PORT"))
 	if port == "" {
 		port = defaultPort

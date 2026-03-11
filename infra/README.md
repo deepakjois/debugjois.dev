@@ -40,3 +40,25 @@ From the repository root:
 - the stack outputs include `ApiUrl`, `LambdaFunctionName`, and `EcrRepositoryUri`
 - `cloudfront/domain-redirect-debugjois-dev.js` is the checked-in source for the live CloudFront Function that redirects `debugjois.dev` to `www.debugjois.dev` and rewrites `/app` SPA routes to `/app/index.html`
 - deploy CloudFront Function updates with `aws cloudfront update-function --name domain-redirect-debugjois-dev --if-match <etag> --function-config Comment="Redirect debugjois.dev -> www.debugjois.dev and rewrite /app SPA paths",Runtime=cloudfront-js-2.0 --function-code fileb://"$(pwd)/cloudfront/domain-redirect-debugjois-dev.js"` and then `aws cloudfront publish-function --name domain-redirect-debugjois-dev --if-match <etag>` from `infra/`
+
+## GitHub PAT secret
+
+The CDK stack creates an empty Secrets Manager secret named
+`debugjois-dev/github-pat` and grants the Lambda permission to read it. The
+secret value is intentionally not managed by CDK, so rerunning `cdk deploy` does
+not overwrite the GitHub PAT.
+
+After the first deployment, set or rotate the secret value independently:
+
+```bash
+aws secretsmanager update-secret \
+  --secret-id debugjois-dev/github-pat \
+  --secret-string 'your-github-pat'
+```
+
+The Lambda receives only the secret ARN in `GITHUB_PAT_SECRET_ARN`. At runtime,
+the function reads the secret from AWS Secrets Manager and populates
+`GITHUB_TOKEN` in-process.
+
+For local development in `backend/api/`, create a `.env` file and set
+`GITHUB_TOKEN` there instead of using Secrets Manager.
