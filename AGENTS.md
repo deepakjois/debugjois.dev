@@ -217,5 +217,6 @@ Workflows live in `.github/workflows/`:
 | `site-latest-deps.yml` | Scheduled | Update site Go dependencies |
 | `site-newsletter.yml` | Weekly cron (Sundays 2am UTC) | Post weekly newsletter to Buttondown |
 | `backend-api-test-deploy.yml` | Push to `backend/api/**` on main + manual | Run backend tests and deploy |
+| `infra-deploy.yml` | Manual | Deploy infra without rebuilding the backend image |
 | `frontend-test-deploy.yml` | Push to `frontend/**` on main | Run frontend tests and deploy to S3 |
 | `claude.yml` | Issue/PR comment with `@claude` | Claude Code bot integration |
