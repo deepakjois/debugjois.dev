@@ -97,7 +97,17 @@ export function Logger() {
   const isDirty = loadState === "ready" && value !== savedValue;
 
   const extensions = useMemo(
-    () => [markdown(), syntaxHighlighting(loggerHighlightStyle), EditorView.lineWrapping],
+    () => [
+      markdown(),
+      syntaxHighlighting(loggerHighlightStyle),
+      EditorView.lineWrapping,
+      EditorView.contentAttributes.of({
+        spellcheck: "true",
+        autocorrect: "on",
+        autocapitalize: "off",
+        lang: "en",
+      }),
+    ],
     [],
   );
 
