@@ -28,8 +28,10 @@ type InfraStackProps struct {
 	ImageURI string
 }
 
-const stackName = "InfraStack"
-const githubPATSecretName = "debugjois-dev/github-pat"
+const (
+	stackName           = "InfraStack"
+	githubPATSecretName = "debugjois-dev/github-pat"
+)
 
 func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps) awscdk.Stack {
 	var sprops awscdk.StackProps
@@ -288,7 +290,7 @@ func lookupDeployedImageURI(ctx context.Context) (string, error) {
 
 	imageURI := strings.TrimSpace(aws.ToString(functionOutput.Code.ImageUri))
 	if imageURI == "" {
-		return "", fmt.Errorf("Lambda function %s does not have an image URI", functionName)
+		return "", fmt.Errorf("lambda function %s does not have an image URI", functionName)
 	}
 
 	return imageURI, nil
