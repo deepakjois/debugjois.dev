@@ -1,0 +1,41 @@
+name: Go Lint
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'site/**'
+      - 'backend/api/**'
+      - 'infra/**'
+      - 'go.work'
+      - '.golangci.yml'
+      - 'AGENTS.md'
+      - '.github/workflows/go-lint.yml'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - module: site
+            go-version-file: site/go.mod
+            cache-dependency-path: site/go.sum
+          - module: backend/api
+            go-version-file: backend/api/go.mod
+            cache-dependency-path: backend/api/go.sum
+          - module: infra
+            go-version-file: infra/go.mod
+            cache-dependency-path: infra/go.sum
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: ${{ matrix.go-version-file }}
+          cache: true
+          cache-dependency-path: ${{ matrix.cache-dependency-path }}
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+          working-directory: ${{ matrix.module }}

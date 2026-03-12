@@ -41,6 +41,12 @@ The repo uses a top-level `go.work` file that includes:
 
 All Go modules use Go `1.26.1`.
 
+### Workflow
+
+- After making changes in any Go module, run `golangci-lint run` from that module directory.
+- The repo-level `.golangci.yml` enables `gofumpt` and `staticcheck` for all Go code in `site/`, `backend/api/`, and `infra/`.
+- Do not add separate `go fmt` or `go vet` checks unless there is a specific reason; `golangci-lint` is the source of truth for Go formatting and linting here.
+
 ## Site
 
 Run all site commands from `site/`.
@@ -60,6 +66,7 @@ Run all site commands from `site/`.
 - `./debugjois-site build-newsletter` - preview the weekly newsletter
 - `./debugjois-site build-newsletter --post` - post newsletter draft to Buttondown
 - `./debugjois-site build-newsletter --post --notify` - post and notify via Resend
+- `golangci-lint run` - run Go linting with `gofumpt` and `staticcheck`
 - `go test ./...` - run all site tests
 
 ### Environment variables
@@ -91,6 +98,7 @@ Run these from `backend/api/`:
 
 - `go run .` - start the local server on `http://localhost:8000`
 - `PORT=9000 go run .` - override the local port
+- `golangci-lint run` - run Go linting with `gofumpt` and `staticcheck`
 - `go test ./...` - run backend tests
 - `go build .` - build the binary
 
@@ -124,6 +132,7 @@ Run these from `infra/` unless the command already includes the path:
 - `cdk diff` - preview infrastructure changes
 - `cdk --app 'go mod download && go run infra.go --image-uri <ecr-image-uri-or-digest>' deploy --require-approval never` - deploy with an explicit image
 - `cdk synth` - synthesize the CloudFormation template
+- `golangci-lint run` - run Go linting with `gofumpt` and `staticcheck`
 - `./infra/deploy.sh` - deploy using the image currently configured on the deployed Lambda
 - `./infra/deploy.sh --build-image` - build and push a new image first, then deploy
 
@@ -198,6 +207,7 @@ Workflows live in `.github/workflows/`:
 | Workflow | Trigger | Description |
 |---|---|---|
 | `site-build-deploy.yml` | Daily cron (23:01 UTC) + manual | Build and deploy static site to S3 |
+| `go-lint.yml` | Push to Go paths on main | Run `golangci-lint` with `gofumpt` and `staticcheck` for `site/`, `backend/api/`, and `infra/` |
 | `site-test-and-deploy.yml` | Push to `site/**` on main | Run site tests, build, and deploy to S3 |
 | `site-govulncheck.yml` | Push to `site/**` on main | Run `govulncheck` on site module |
 | `site-latest-deps.yml` | Scheduled | Update site Go dependencies |
