@@ -56,10 +56,11 @@ export function RootComponent() {
     }
 
     const controller = new AbortController();
+    const currentToken = token;
 
     async function validateToken() {
       try {
-        await validateSession(token, controller.signal);
+        await validateSession(currentToken, controller.signal);
         setAuthStatus("ready");
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {

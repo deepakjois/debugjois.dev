@@ -26,11 +26,12 @@ describe("backend service", () => {
   it("maps 403 session validation failures to forbidden errors", async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 403 }));
     vi.stubGlobal("fetch", fetchMock);
-
-    await expect(validateSession("token-123")).rejects.toMatchObject<Partial<BackendError>>({
+    const expectedError: Partial<BackendError> = {
       kind: "forbidden",
       status: 403,
-    });
+    };
+
+    await expect(validateSession("token-123")).rejects.toMatchObject(expectedError);
   });
 
   it("loads and decodes the daily note", async () => {
@@ -90,11 +91,12 @@ describe("backend service", () => {
   it("maps network failures to backend errors", async () => {
     fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
     vi.stubGlobal("fetch", fetchMock);
-
-    await expect(getDailyNote("token-123")).rejects.toMatchObject<Partial<BackendError>>({
+    const expectedError: Partial<BackendError> = {
       kind: "network",
       message: "Could not reach the backend.",
       status: null,
-    });
+    };
+
+    await expect(getDailyNote("token-123")).rejects.toMatchObject(expectedError);
   });
 });
