@@ -173,11 +173,12 @@ Run these from `frontend/`:
 
 ### Workflow
 
-After every set of frontend edits, always run these three steps in order — no exceptions, even for small changes:
+After every set of frontend edits, always run these steps in order — no exceptions, even for small changes:
 
 1. `npm run fmt` — format all files (must run first; reformats code in place)
 2. `npm run lint` — check for lint errors
-3. `npm test` or `npm run build` — use whichever is narrowest for the change
+3. `npm run build` — default final check for frontend TypeScript changes; this runs `tsc -b` and catches type errors that tests and lint can miss
+4. `npm test` — also run when the change affects runtime behavior, component behavior, routing behavior, or test-covered functionality
 
 ### Configuration
 
