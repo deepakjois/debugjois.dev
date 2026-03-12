@@ -48,7 +48,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-east-2
+          aws-region: us-west-2
 
       - name: Deploy backend
         run: ./infra/deploy.sh --build-image
