@@ -11,6 +11,18 @@ function authCheck(request: Request) {
   return null;
 }
 
+export let latestDailyNote = {
+  title: "2026-03-12.md",
+  contents: "# Daily Note\n\nTest content.",
+};
+
+export function resetMockDailyNote() {
+  latestDailyNote = {
+    title: "2026-03-12.md",
+    contents: "# Daily Note\n\nTest content.",
+  };
+}
+
 export const handlers = [
   http.get(`${BASE_URL}/`, ({ request }) => {
     return authCheck(request) ?? HttpResponse.json({ status: "ok", email: "test@example.com" });
@@ -20,9 +32,27 @@ export const handlers = [
     return (
       authCheck(request) ??
       HttpResponse.json({
-        title: "2026-03-12.md",
-        contents: btoa("# Daily Note\n\nTest content."),
+        title: latestDailyNote.title,
+        contents: btoa(latestDailyNote.contents),
       })
     );
+  }),
+
+  http.post(`${BASE_URL}/daily`, async ({ request }) => {
+    const authResponse = authCheck(request);
+    if (authResponse) {
+      return authResponse;
+    }
+
+    const body = (await request.json()) as { title: string; contents: string };
+    latestDailyNote = {
+      title: body.title,
+      contents: atob(body.contents),
+    };
+
+    return HttpResponse.json({
+      title: latestDailyNote.title,
+      contents: btoa(latestDailyNote.contents),
+    });
   }),
 ];

@@ -110,54 +110,79 @@
   white-space: nowrap;
 }
 
-.logger-editor-toggle {
+.logger-editor-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logger-editor-save-message {
+  margin: 0;
+  color: var(--app-danger);
+  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+
+.logger-editor-save-button {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  color: #ac9ad8;
+  gap: 9px;
+  min-width: 96px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(108, 123, 177, 0.28);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(57, 68, 112, 0.9), rgba(38, 47, 87, 0.94));
+  color: #e4e9ff;
+  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   cursor: pointer;
   transition:
-    background-color 120ms ease,
-    color 120ms ease;
+    transform 120ms ease,
+    border-color 120ms ease,
+    background 120ms ease,
+    color 120ms ease,
+    opacity 120ms ease;
 }
 
-.logger-editor-toggle:hover {
-  background: rgba(255, 255, 255, 0.05);
+.logger-editor-save-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(143, 181, 255, 0.52);
 }
 
-.logger-editor-toggle input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  border: 0;
-  clip: rect(0, 0, 0, 0);
+.logger-editor-save-button:focus-visible {
+  outline: 2px solid rgba(143, 185, 255, 0.7);
+  outline-offset: 3px;
 }
 
-.logger-editor-toggle-icon {
+.logger-editor-save-button:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
+.logger-editor-save-button.is-saved {
+  border-color: rgba(114, 186, 148, 0.48);
+  background: linear-gradient(180deg, rgba(46, 91, 77, 0.92), rgba(36, 72, 61, 0.95));
+}
+
+.logger-editor-save-button.is-error {
+  border-color: rgba(212, 111, 111, 0.45);
+  background: linear-gradient(180deg, rgba(118, 47, 63, 0.92), rgba(95, 33, 48, 0.95));
+}
+
+.logger-editor-save-icon {
   width: 14px;
   height: 14px;
 }
 
-.logger-editor-toggle input:focus-visible + .logger-editor-toggle-icon {
-  outline: 2px solid rgba(143, 185, 255, 0.7);
-  outline-offset: 6px;
-}
-
-.logger-editor-toggle-stroke {
+.logger-editor-save-stroke {
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 1.35;
-}
-
-.logger-editor-toggle input:not(:checked) + .logger-editor-toggle-icon {
-  color: #716b90;
+  stroke-width: 1.2;
 }
 
 .logger-editor-pane {
@@ -262,6 +287,19 @@
 
   .logger-editor-toolbar {
     padding: 0 16px;
+  }
+
+  .logger-editor-toolbar-actions {
+    gap: 8px;
+  }
+
+  .logger-editor-save-message {
+    display: none;
+  }
+
+  .logger-editor-save-button {
+    min-width: 86px;
+    padding: 0 12px;
   }
 
   .logger-editor-codemirror .cm-content {

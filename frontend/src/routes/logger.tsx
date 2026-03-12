@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
@@ -6,11 +6,11 @@ import { EditorView } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAuth } from "../auth";
+import { BackendError, getDailyNote, saveDailyNote } from "../services/backend";
 import "./logger.css";
 
-const API_URL = import.meta.env.VITE_SITE_BACKEND_URL;
 type LoadState = "checking" | "ready" | "unauthenticated" | "forbidden" | "error";
-type DailyNote = { title: string; contents: string };
+type SaveState = "idle" | "saving" | "saved" | "error";
 
 const loggerHighlightStyle = HighlightStyle.define([
   { tag: tags.heading1, color: "#e0b36f", fontWeight: "700", fontSize: "1.46em" },
@@ -46,16 +46,12 @@ function NoteLogo() {
   );
 }
 
-function WrapIcon() {
+function SaveIcon() {
   return (
-    <svg aria-hidden="true" className="logger-editor-toggle-icon" viewBox="0 0 16 16" fill="none">
-      <path d="M2.25 3.5h11.5" className="logger-editor-toggle-stroke" />
-      <path d="M2.25 7.25h8.25" className="logger-editor-toggle-stroke" />
-      <path
-        d="M10.5 7.25h1.25c1.1 0 2 .9 2 2v.5c0 1.1-.9 2-2 2H6.75"
-        className="logger-editor-toggle-stroke"
-      />
-      <path d="m8.5 10.25-1.75 1.5 1.75 1.5" className="logger-editor-toggle-stroke" />
+    <svg aria-hidden="true" className="logger-editor-save-icon" viewBox="0 0 16 16" fill="none">
+      <path d="M3 2.75h8.75l1.5 1.5v9H3z" className="logger-editor-save-stroke" />
+      <path d="M5 2.75v3.5h5V2.75" className="logger-editor-save-stroke" />
+      <path d="M5.25 10.25h5.5" className="logger-editor-save-stroke" />
     </svg>
   );
 }
@@ -90,20 +86,20 @@ export const Route = createFileRoute("/logger")({
 export function Logger() {
   const { token, signOut } = useAuth();
   const [value, setValue] = useState("");
+  const [savedValue, setSavedValue] = useState("");
   const [title, setTitle] = useState("");
-  const [wrapEnabled, setWrapEnabled] = useState(true);
   const [loadState, setLoadState] = useState<LoadState>("checking");
   const [loadMessage, setLoadMessage] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const saveResetTimeoutRef = useRef<number | null>(null);
 
-  const extensions = useMemo(() => {
-    const baseExtensions = [markdown(), syntaxHighlighting(loggerHighlightStyle)];
+  const isDirty = loadState === "ready" && value !== savedValue;
 
-    if (wrapEnabled) {
-      return [...baseExtensions, EditorView.lineWrapping];
-    }
-
-    return baseExtensions;
-  }, [wrapEnabled]);
+  const extensions = useMemo(
+    () => [markdown(), syntaxHighlighting(loggerHighlightStyle), EditorView.lineWrapping],
+    [],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -112,44 +108,42 @@ export function Logger() {
       setLoadState("checking");
       setLoadMessage(null);
 
-      const headers: HeadersInit =
-        import.meta.env.VITE_AUTH_BYPASS === "true" ? {} : { Authorization: `Bearer ${token}` };
-
       try {
-        const res = await fetch(`${API_URL}/daily`, {
-          signal: controller.signal,
-          headers,
-        });
-
-        if (res.ok) {
-          const body: DailyNote = await res.json();
-          setTitle(body.title);
-          setValue(
-            body.contents
-              ? new TextDecoder().decode(
-                  Uint8Array.from(atob(body.contents), (c) => c.charCodeAt(0)),
-                )
-              : "",
-          );
-          setLoadState("ready");
-          return;
-        }
-
-        if (res.status === 401) {
-          setLoadState("unauthenticated");
-          return;
-        }
-
-        if (res.status === 403) {
-          setLoadState("forbidden");
-          setLoadMessage("Unauthorized access. Sign in with an approved account.");
-          return;
-        }
-
-        setLoadState("error");
-        setLoadMessage(`Could not load editor data (HTTP ${res.status}).`);
+        const note = await getDailyNote(token, controller.signal);
+        setTitle(note.title);
+        setValue(note.contents);
+        setSavedValue(note.contents);
+        setSaveState("idle");
+        setSaveMessage(null);
+        setLoadState("ready");
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
+
+        if (error instanceof BackendError) {
+          if (error.kind === "unauthenticated") {
+            setLoadState("unauthenticated");
+            return;
+          }
+
+          if (error.kind === "forbidden") {
+            setLoadState("forbidden");
+            setLoadMessage("Unauthorized access. Sign in with an approved account.");
+            return;
+          }
+
+          if (error.kind === "http" && error.status !== null) {
+            setLoadState("error");
+            setLoadMessage(`Could not load editor data (HTTP ${error.status}).`);
+            return;
+          }
+
+          if (error.kind === "network") {
+            setLoadState("error");
+            setLoadMessage(error.message);
+            return;
+          }
+        }
+
         setLoadState("error");
         setLoadMessage("Could not reach the backend.");
       }
@@ -159,6 +153,14 @@ export function Logger() {
 
     return () => controller.abort();
   }, [token]);
+
+  useEffect(() => {
+    return () => {
+      if (saveResetTimeoutRef.current !== null) {
+        window.clearTimeout(saveResetTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (loadState === "unauthenticated") {
@@ -191,6 +193,63 @@ export function Logger() {
     );
   }
 
+  async function handleSave() {
+    if (!isDirty || saveState === "saving") {
+      return;
+    }
+
+    if (saveResetTimeoutRef.current !== null) {
+      window.clearTimeout(saveResetTimeoutRef.current);
+      saveResetTimeoutRef.current = null;
+    }
+
+    setSaveState("saving");
+    setSaveMessage(null);
+
+    try {
+      const savedNote = await saveDailyNote(token, { contents: value, title });
+      setTitle(savedNote.title);
+      setValue(savedNote.contents);
+      setSavedValue(savedNote.contents);
+      setSaveState("saved");
+      saveResetTimeoutRef.current = window.setTimeout(() => {
+        setSaveState("idle");
+        saveResetTimeoutRef.current = null;
+      }, 1800);
+    } catch (error) {
+      if (error instanceof BackendError) {
+        if (error.kind === "unauthenticated") {
+          setLoadState("unauthenticated");
+          return;
+        }
+
+        if (error.kind === "forbidden") {
+          setSaveState("error");
+          setSaveMessage("Unauthorized access. Sign in with an approved account.");
+          return;
+        }
+
+        if (error.kind === "http" && error.status !== null) {
+          setSaveState("error");
+          setSaveMessage(`Could not save note (HTTP ${error.status}).`);
+          return;
+        }
+
+        if (error.kind === "network") {
+          setSaveState("error");
+          setSaveMessage(error.message);
+          return;
+        }
+      }
+
+      setSaveState("error");
+      setSaveMessage("Could not save note.");
+    }
+  }
+
+  const saveButtonLabel =
+    saveState === "saving" ? "Saving..." : saveState === "saved" ? "Saved" : "Save";
+
   return (
     <div className="logger-editor-page">
       <div className="logger-editor-shell">
@@ -199,15 +258,18 @@ export function Logger() {
             <NoteLogo />
             <h1 className="logger-editor-title">{title}</h1>
           </div>
-          <label className="logger-editor-toggle" title="Toggle word wrap">
-            <input
-              aria-label="Wrap"
-              checked={wrapEnabled}
-              onChange={(event) => setWrapEnabled(event.target.checked)}
-              type="checkbox"
-            />
-            <WrapIcon />
-          </label>
+          <div className="logger-editor-toolbar-actions">
+            {saveMessage ? <p className="logger-editor-save-message">{saveMessage}</p> : null}
+            <button
+              className={`logger-editor-save-button is-${saveState}`}
+              disabled={!isDirty || saveState === "saving"}
+              onClick={() => void handleSave()}
+              type="button"
+            >
+              <SaveIcon />
+              <span>{saveButtonLabel}</span>
+            </button>
+          </div>
         </div>
 
         <div className="logger-editor-pane">

@@ -13,6 +13,7 @@ import { AuthContext } from "../auth";
 import { Index } from "../routes/index";
 import { Logger } from "../routes/logger";
 import { Podscriber } from "../routes/podscriber";
+import { latestDailyNote } from "../test/mocks/handlers";
 import { server } from "../test/mocks/server";
 
 // Bypasses the login gate; provides a real AuthContext value so useAuth() succeeds.
@@ -33,8 +34,8 @@ describe("Logger route - markdown editor", () => {
 
     await waitFor(() => expect(screen.queryByText("Loading editor...")).not.toBeInTheDocument());
     expect(screen.getByRole("heading", { name: "2026-03-12.md" })).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: "Wrap" })).toBeChecked();
     expect(screen.getByRole("textbox")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     expect(screen.getByText("Daily Note")).toBeInTheDocument();
     expect(screen.getByText("Test content.")).toBeInTheDocument();
   });
@@ -53,32 +54,25 @@ describe("Logger route - markdown editor", () => {
     ).toBeInTheDocument();
   });
 
-  it("toggles word wrap on and off", async () => {
+  it("saves the edited note and returns to a clean state", async () => {
     const user = userEvent.setup();
     await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Logger });
 
     await waitFor(() => expect(screen.queryByText("Loading editor...")).not.toBeInTheDocument());
+    const editor = screen.getByRole("textbox");
+    expect(editor).toHaveClass("cm-lineWrapping");
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+
+    await user.click(editor);
+    await user.keyboard("\nExtra line");
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save" })).toBeEnabled());
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Saved" })).toBeDisabled());
     expect(screen.getByRole("textbox")).toHaveClass("cm-lineWrapping");
-
-    await user.click(screen.getByRole("checkbox", { name: "Wrap" }));
-
-    await waitFor(() => expect(screen.getByRole("textbox")).not.toHaveClass("cm-lineWrapping"));
-  });
-
-  it("updates the wrap control state when toggled back on", async () => {
-    const user = userEvent.setup();
-    await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Logger });
-
-    await waitFor(() => expect(screen.queryByText("Loading editor...")).not.toBeInTheDocument());
-    const wrapToggle = screen.getByRole("checkbox", { name: "Wrap" });
-
-    await user.click(wrapToggle);
-    await waitFor(() => expect(screen.getByRole("textbox")).not.toHaveClass("cm-lineWrapping"));
-
-    await user.click(screen.getByRole("checkbox", { name: "Wrap" }));
-
-    await waitFor(() => expect(screen.getByRole("textbox")).toHaveClass("cm-lineWrapping"));
-    expect(screen.getByRole("checkbox", { name: "Wrap" })).toBeChecked();
+    expect(latestDailyNote.contents).toContain("Extra line");
   });
 });
 

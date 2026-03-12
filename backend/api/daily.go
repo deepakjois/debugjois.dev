@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -26,6 +27,10 @@ type dailyResponse struct {
 
 func todayStringInCET() string {
 	return cet.Now().Format("2006-01-02")
+}
+
+func currentTimestampInCET() string {
+	return cet.Now().Format("2006-01-02 15:04:05")
 }
 
 func newGitHubClient() (*github.Client, error) {
@@ -60,4 +65,49 @@ func loadDailyNoteContentFromGitHub(ctx context.Context, client *github.Client, 
 	}
 
 	return content, nil
+}
+
+func validateDailyTitle(title, currentDate string) error {
+	if title != fmt.Sprintf("%s.md", currentDate) {
+		return fmt.Errorf("title must match current date %s.md", currentDate)
+	}
+
+	return nil
+}
+
+func saveDailyNoteContentToGitHub(ctx context.Context, client *github.Client, title, contents, commitMessage string) error {
+	path := fmt.Sprintf("%s/%s", dailyNotesPathPrefix, title)
+	opts := &github.RepositoryContentFileOptions{
+		Message: new(commitMessage),
+		Content: []byte(contents),
+	}
+
+	fileContent, _, _, err := client.Repositories.GetContents(ctx, githubOwner, githubRepo, path, nil)
+	if err != nil {
+		var githubError *github.ErrorResponse
+		if !errors.As(err, &githubError) || githubError.Response == nil || githubError.Response.StatusCode != http.StatusNotFound {
+			return fmt.Errorf("get GitHub contents for %q: %w", path, err)
+		}
+	}
+
+	if fileContent == nil {
+		_, _, err = client.Repositories.CreateFile(ctx, githubOwner, githubRepo, path, opts)
+		if err != nil {
+			return fmt.Errorf("create GitHub contents for %q: %w", path, err)
+		}
+
+		return nil
+	}
+
+	opts.SHA = fileContent.SHA
+	_, _, err = client.Repositories.UpdateFile(ctx, githubOwner, githubRepo, path, opts)
+	if err != nil {
+		return fmt.Errorf("update GitHub contents for %q: %w", path, err)
+	}
+
+	return nil
+}
+
+func encodeDailyContents(contents string) string {
+	return base64.StdEncoding.EncodeToString([]byte(contents))
 }

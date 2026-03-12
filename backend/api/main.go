@@ -39,7 +39,11 @@ func main() {
 		func(ctx context.Context, date string) (string, error) {
 			return loadDailyNoteContentFromGitHub(ctx, client, date)
 		},
+		func(ctx context.Context, title, contents, commitMessage string) error {
+			return saveDailyNoteContentToGitHub(ctx, client, title, contents, commitMessage)
+		},
 		todayStringInCET,
+		currentTimestampInCET,
 	)
 
 	if isLambda {

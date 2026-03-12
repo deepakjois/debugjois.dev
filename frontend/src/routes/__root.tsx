@@ -7,9 +7,9 @@ import {
   type CredentialResponse,
 } from "@react-oauth/google";
 import { AuthContext } from "../auth";
+import { BackendError, validateSession } from "../services/backend";
 
 const STORAGE_KEY = "app_auth_token";
-const API_URL = import.meta.env.VITE_SITE_BACKEND_URL;
 
 type AuthStatus = "checking" | "ready" | "unauthenticated" | "forbidden" | "error";
 
@@ -59,30 +59,34 @@ export function RootComponent() {
 
     async function validateToken() {
       try {
-        const res = await fetch(`${API_URL}/`, {
-          signal: controller.signal,
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (res.ok) {
-          setAuthStatus("ready");
-          return;
-        }
-
-        localStorage.removeItem(STORAGE_KEY);
-        setToken(null);
-
-        if (res.status === 403) {
-          setAuthStatus("forbidden");
-          setAuthMessage("Unauthorized access. Sign in with an approved account.");
-          return;
-        }
-
-        setAuthStatus("unauthenticated");
-        setAuthMessage(null);
+        await validateSession(token, controller.signal);
+        setAuthStatus("ready");
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
+        }
+
+        if (error instanceof BackendError) {
+          if (error.kind === "forbidden" || error.kind === "unauthenticated") {
+            localStorage.removeItem(STORAGE_KEY);
+            setToken(null);
+
+            if (error.kind === "forbidden") {
+              setAuthStatus("forbidden");
+              setAuthMessage("Unauthorized access. Sign in with an approved account.");
+              return;
+            }
+
+            setAuthStatus("unauthenticated");
+            setAuthMessage(null);
+            return;
+          }
+
+          if (error.kind === "network") {
+            setAuthStatus("error");
+            setAuthMessage(error.message);
+            return;
+          }
         }
 
         setAuthStatus("error");
