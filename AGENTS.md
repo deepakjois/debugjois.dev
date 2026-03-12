@@ -98,6 +98,7 @@ Run these from `backend/api/`:
 
 | Variable | Required | Description |
 |---|---|---|
+| `GITHUB_TOKEN` | Yes for local dev | GitHub PAT loaded from `backend/api/.env` when running locally |
 | `PORT` | No (default: `8000`) | HTTP server port for local dev |
 | `AWS_LAMBDA_RUNTIME_API` | In Lambda only | Set automatically by Lambda runtime; switches server to Lambda mode |
 
@@ -138,6 +139,8 @@ Run these from `infra/` unless the command already includes the path:
 - `infra/deploy.sh` calls `../backend/build-and-push-image.sh` when `--build-image` is used and passes the resulting image URI directly to `infra.go`
 - the API URL is emitted as the `ApiUrl` stack output after deploy
 - `infra/cloudfront/domain-redirect-debugjois-dev.js` is the source for the production CloudFront Function that redirects the apex domain and rewrites `/app` SPA routes
+- the CDK stack creates a Secrets Manager secret named `debugjois-dev/github-pat`; set or rotate its value outside CDK with `aws secretsmanager update-secret --secret-id debugjois-dev/github-pat --secret-string '<github-pat>'`
+- Lambda receives `GITHUB_PAT_SECRET_ARN`, reads the PAT from Secrets Manager during startup, and sets `GITHUB_TOKEN` in-process
 
 ## Frontend
 
