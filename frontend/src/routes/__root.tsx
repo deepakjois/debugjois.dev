@@ -59,7 +59,7 @@ export function RootComponent() {
 
     async function validateToken() {
       try {
-        const res = await fetch(`${API_URL}/health`, {
+        const res = await fetch(`${API_URL}/`, {
           signal: controller.signal,
           headers: { Authorization: `Bearer ${token}` },
         });

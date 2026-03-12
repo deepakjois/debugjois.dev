@@ -4,7 +4,7 @@ import { http, HttpResponse } from "msw";
 const BASE_URL = "http://localhost:3000";
 
 export const handlers = [
-  http.get(`${BASE_URL}/health`, ({ request }) => {
+  http.get(`${BASE_URL}/`, ({ request }) => {
     const authHeader = request.headers.get("Authorization");
 
     if (!authHeader) {

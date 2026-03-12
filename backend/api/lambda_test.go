@@ -9,9 +9,9 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-func TestLambdaHealthAuthorized(t *testing.T) {
+func TestLambdaRootAuthorized(t *testing.T) {
 	response, err := handleLambdaInvocation(context.Background(), events.APIGatewayV2HTTPRequest{
-		RawPath: "/health",
+		RawPath: "/",
 		RequestContext: events.APIGatewayV2HTTPRequestContext{
 			HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{
 				Method: http.MethodGet,
@@ -36,18 +36,14 @@ func TestLambdaHealthAuthorized(t *testing.T) {
 		t.Fatalf("unmarshal response: %v", err)
 	}
 
-	if body["status"] != "ok" {
-		t.Fatalf("expected status %q, got %#v", "ok", body["status"])
-	}
-
-	if _, ok := body["email"]; ok {
-		t.Fatalf("expected email field to be omitted, got %#v", body["email"])
+	if _, ok := body["message"]; !ok {
+		t.Fatalf("expected message field in response, got %#v", body)
 	}
 }
 
 func TestLambdaUnauthorizedRejectedBeforeRouter(t *testing.T) {
 	response, err := handleLambdaInvocation(context.Background(), events.APIGatewayV2HTTPRequest{
-		RawPath: "/health",
+		RawPath: "/",
 		RequestContext: events.APIGatewayV2HTTPRequestContext{
 			HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{
 				Method: http.MethodGet,

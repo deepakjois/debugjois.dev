@@ -42,9 +42,7 @@ describe("Logger route - markdown editor", () => {
   it("shows an unauthorized message for a forbidden backend response", async () => {
     const ForbiddenRoot = makePreAuthenticatedRoot(AuthContext);
 
-    server.use(
-      http.get("http://localhost:3000/health", () => new HttpResponse(null, { status: 403 })),
-    );
+    server.use(http.get("http://localhost:3000/", () => new HttpResponse(null, { status: 403 })));
 
     await renderWithRouter({ rootComponent: ForbiddenRoot, routeComponent: Logger });
 

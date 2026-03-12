@@ -32,6 +32,9 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Local dev serves the API directly, so add CORS here.
+	app = withLocalCORS(app)
+
 	port := strings.TrimSpace(os.Getenv("PORT"))
 	if port == "" {
 		port = defaultPort
@@ -49,4 +52,31 @@ func main() {
 
 func isLambdaRuntime() bool {
 	return strings.TrimSpace(os.Getenv("AWS_LAMBDA_RUNTIME_API")) != ""
+}
+
+func withLocalCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		applyCORSHeaders(w.Header())
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func corsHeaders() map[string]string {
+	return map[string]string{
+		"Access-Control-Allow-Origin":  "*",
+		"Access-Control-Allow-Headers": "Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token",
+		"Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS",
+		"Content-Type":                 "application/json",
+	}
+}
+
+func applyCORSHeaders(headers http.Header) {
+	for key, value := range corsHeaders() {
+		headers.Set(key, value)
+	}
 }

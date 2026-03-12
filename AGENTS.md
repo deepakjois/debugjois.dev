@@ -82,7 +82,7 @@ The backend API lives in `backend/api/` and is written in Go.
 
 - runs as a normal HTTP server locally
 - runs as an AWS Lambda when `AWS_LAMBDA_RUNTIME_API` is set
-- currently serves `/` and `/health`
+- currently serves `/` (also used as the healthcheck endpoint)
 - reads authenticated user email from API Gateway JWT context when invoked via Lambda
 
 ### Common commands

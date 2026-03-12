@@ -153,22 +153,19 @@ export function Logger() {
   }, [wrapEnabled]);
 
   useEffect(() => {
-    if (import.meta.env.VITE_AUTH_BYPASS === "true") {
-      setLoadState("ready");
-      setLoadMessage(null);
-      return;
-    }
-
     const controller = new AbortController();
 
     async function loadInitialData() {
       setLoadState("checking");
       setLoadMessage(null);
 
+      const headers: HeadersInit =
+        import.meta.env.VITE_AUTH_BYPASS === "true" ? {} : { Authorization: `Bearer ${token}` };
+
       try {
-        const res = await fetch(`${API_URL}/health`, {
+        const res = await fetch(`${API_URL}/`, {
           signal: controller.signal,
-          headers: { Authorization: `Bearer ${token}` },
+          headers,
         });
 
         if (res.ok) {
