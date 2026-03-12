@@ -216,6 +216,6 @@ Workflows live in `.github/workflows/`:
 | `site-govulncheck.yml` | Push to `site/**` on main | Run `govulncheck` on site module |
 | `site-latest-deps.yml` | Scheduled | Update site Go dependencies |
 | `site-newsletter.yml` | Weekly cron (Sundays 2am UTC) | Post weekly newsletter to Buttondown |
-| `backend-api-test.yml` | Push to `backend/api/**` on main | Run backend Go tests |
+| `backend-api-test-deploy.yml` | Push to `backend/api/**` on main + manual | Run backend tests and deploy |
 | `frontend-test-deploy.yml` | Push to `frontend/**` on main | Run frontend tests and deploy to S3 |
 | `claude.yml` | Issue/PR comment with `@claude` | Claude Code bot integration |
