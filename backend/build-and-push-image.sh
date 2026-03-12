@@ -7,7 +7,13 @@ API_DIR="${SCRIPT_DIR}/api"
 REPOSITORY_NAME="debugjois-dev"
 IMAGE_TAG="debugjois-dev-backend-api-$(date +%Y%m%d-%H%M%S)"
 
-AWS_REGION="$(aws configure get region)"
+AWS_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-$(aws configure get region 2>/dev/null || true)}}"
+
+if [[ -z "${AWS_REGION}" ]]; then
+  echo "AWS region is not configured. Set AWS_REGION or AWS_DEFAULT_REGION, or configure a default AWS CLI region." >&2
+  exit 1
+fi
+
 ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
 
 REPOSITORY_URI="$(aws ecr describe-repositories --repository-names "${REPOSITORY_NAME}" --region "${AWS_REGION}" --query 'repositories[0].repositoryUri' --output text)"
