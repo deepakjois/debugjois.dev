@@ -93,7 +93,7 @@ func (r *ObsidianImageRenderer) renderObsidianImage(w util.BufWriter, source []b
 		return ast.WalkContinue, nil
 	}
 
-	if _, err := w.WriteString(fmt.Sprintf(`<img src="%s" alt="%s">`, n.Filename, n.Filename)); err != nil {
+	if _, err := fmt.Fprintf(w, `<img src="%s" alt="%s">`, n.Filename, n.Filename); err != nil {
 		return ast.WalkSkipChildren, err
 	}
 

@@ -1,5 +1,10 @@
+version: "2"
+
 linters:
-  disable-all: true
+  default: none
+  enable:
+    - staticcheck
+
+formatters:
   enable:
     - gofumpt
-    - staticcheck
