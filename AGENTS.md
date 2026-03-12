@@ -173,8 +173,11 @@ Run these from `frontend/`:
 
 ### Workflow
 
-- After making changes under `frontend/`, run `npm run fmt` and `npm run lint` before finishing.
-- Then run the narrowest relevant verification command for the change, usually `npm test` or `npm run build`.
+After every set of frontend edits, always run these three steps in order — no exceptions, even for small changes:
+
+1. `npm run fmt` — format all files (must run first; reformats code in place)
+2. `npm run lint` — check for lint errors
+3. `npm test` or `npm run build` — use whichever is narrowest for the change
 
 ### Configuration
 

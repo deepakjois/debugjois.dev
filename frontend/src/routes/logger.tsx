@@ -126,7 +126,9 @@ export function Logger() {
           setTitle(body.title);
           setValue(
             body.contents
-              ? new TextDecoder().decode(Uint8Array.from(atob(body.contents), (c) => c.charCodeAt(0)))
+              ? new TextDecoder().decode(
+                  Uint8Array.from(atob(body.contents), (c) => c.charCodeAt(0)),
+                )
               : "",
           );
           setLoadState("ready");
