@@ -4,7 +4,12 @@ linters:
   default: none
   enable:
     - staticcheck
+    - govet
+    - ineffassign
 
 formatters:
   enable:
     - gofumpt
+  settings:
+    gofumpt:
+      extra-rules: true
