@@ -28,21 +28,23 @@ describe("Index route - app launcher", () => {
 });
 
 describe("Logger route - markdown editor", () => {
-  it("renders the editor shell with sample markdown", async () => {
+  it("renders the editor shell with daily note content", async () => {
     await renderWithRouter({ rootComponent: PreAuthRoot, routeComponent: Logger });
 
     await waitFor(() => expect(screen.queryByText("Loading editor...")).not.toBeInTheDocument());
-    expect(screen.getByRole("heading", { name: "Welcome.md" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "2026-03-12.md" })).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "Wrap" })).toBeChecked();
     expect(screen.getByRole("textbox")).toBeInTheDocument();
-    expect(screen.getByText("Welcome to the source editor.")).toBeInTheDocument();
-    expect(screen.getByText("Markdown Guide")).toBeInTheDocument();
+    expect(screen.getByText("Daily Note")).toBeInTheDocument();
+    expect(screen.getByText("Test content.")).toBeInTheDocument();
   });
 
   it("shows an unauthorized message for a forbidden backend response", async () => {
     const ForbiddenRoot = makePreAuthenticatedRoot(AuthContext);
 
-    server.use(http.get("http://localhost:3000/", () => new HttpResponse(null, { status: 403 })));
+    server.use(
+      http.get("http://localhost:3000/daily", () => new HttpResponse(null, { status: 403 })),
+    );
 
     await renderWithRouter({ rootComponent: ForbiddenRoot, routeComponent: Logger });
 

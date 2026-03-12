@@ -10,55 +10,7 @@ import "./logger.css";
 
 const API_URL = import.meta.env.VITE_SITE_BACKEND_URL;
 type LoadState = "checking" | "ready" | "unauthenticated" | "forbidden" | "error";
-
-const SAMPLE_MARKDOWN = `# Meeting Notes
-
-Welcome to the source editor.
-
-## Formatting
-
-This paragraph includes **bold text**, *italic text*, and ==highlighted ideas==.
-
-### Lists
-
-- Capture the rough draft
-- Refine the structure
-- Keep the final version readable
-
-1. Open the note
-2. Edit in source mode
-3. Save when ready
-
-### Tasks
-
-- [x] Sketch the layout
-- [ ] Wire the backend
-- [ ] Add custom commands
-
-### Quote
-
-> Write notes like you are thinking out loud, then shape them later.
-
-### Link
-
-Review the [Markdown Guide](https://www.markdownguide.org/basic-syntax/) for syntax details.
-
-### Code
-
-~~~ts
-export function summarize(note: string) {
-  return note.trim();
-}
-~~~
-
-### Table
-
-| Section | Purpose |
-| --- | --- |
-| Draft | Quick capture |
-| Review | Clean up wording |
-| Publish | Share the final version |
-`;
+type DailyNote = { title: string; contents: string };
 
 const loggerHighlightStyle = HighlightStyle.define([
   { tag: tags.heading1, color: "#e0b36f", fontWeight: "700", fontSize: "1.46em" },
@@ -137,7 +89,8 @@ export const Route = createFileRoute("/logger")({
 
 export function Logger() {
   const { token, signOut } = useAuth();
-  const [value, setValue] = useState(SAMPLE_MARKDOWN);
+  const [value, setValue] = useState("");
+  const [title, setTitle] = useState("");
   const [wrapEnabled, setWrapEnabled] = useState(true);
   const [loadState, setLoadState] = useState<LoadState>("checking");
   const [loadMessage, setLoadMessage] = useState<string | null>(null);
@@ -163,12 +116,19 @@ export function Logger() {
         import.meta.env.VITE_AUTH_BYPASS === "true" ? {} : { Authorization: `Bearer ${token}` };
 
       try {
-        const res = await fetch(`${API_URL}/`, {
+        const res = await fetch(`${API_URL}/daily`, {
           signal: controller.signal,
           headers,
         });
 
         if (res.ok) {
+          const body: DailyNote = await res.json();
+          setTitle(body.title);
+          setValue(
+            body.contents
+              ? new TextDecoder().decode(Uint8Array.from(atob(body.contents), (c) => c.charCodeAt(0)))
+              : "",
+          );
           setLoadState("ready");
           return;
         }
@@ -235,7 +195,7 @@ export function Logger() {
         <div className="logger-editor-toolbar">
           <div className="logger-editor-title-group">
             <NoteLogo />
-            <h1 className="logger-editor-title">Welcome.md</h1>
+            <h1 className="logger-editor-title">{title}</h1>
           </div>
           <label className="logger-editor-toggle" title="Toggle word wrap">
             <input
