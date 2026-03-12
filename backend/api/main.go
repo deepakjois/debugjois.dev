@@ -18,18 +18,33 @@ const (
 
 func main() {
 	ctx := context.Background()
-	app := NewAppHandler()
-	if isLambdaRuntime() {
+	isLambda := isLambdaRuntime()
+
+	if isLambda {
 		if err := loadLambdaGitHubToken(ctx); err != nil {
 			log.Fatal(err)
 		}
-
-		lambda.Start(newLambdaHandler(app))
-		return
+	} else {
+		if err := loadLocalEnvFile(); err != nil {
+			log.Fatal(err)
+		}
 	}
 
-	if err := loadLocalEnvFile(); err != nil {
+	client, err := newGitHubClient()
+	if err != nil {
 		log.Fatal(err)
+	}
+
+	app := NewAppHandler(
+		func(ctx context.Context, date string) (string, error) {
+			return loadDailyNoteContentFromGitHub(ctx, client, date)
+		},
+		todayStringInCET,
+	)
+
+	if isLambda {
+		lambda.Start(newLambdaHandler(app))
+		return
 	}
 
 	// Local dev serves the API directly, so add CORS here.

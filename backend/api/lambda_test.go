@@ -22,7 +22,7 @@ func TestLambdaRootAuthorized(t *testing.T) {
 				},
 			},
 		},
-	}, NewAppHandler())
+	}, NewAppHandler(nil, nil))
 	if err != nil {
 		t.Fatalf("handle lambda invocation: %v", err)
 	}
@@ -49,7 +49,7 @@ func TestLambdaUnauthorizedRejectedBeforeRouter(t *testing.T) {
 				Method: http.MethodGet,
 			},
 		},
-	}, NewAppHandler())
+	}, NewAppHandler(nil, nil))
 	if err != nil {
 		t.Fatalf("handle lambda invocation: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestLambdaRequestWithInvalidBase64Body(t *testing.T) {
 				},
 			},
 		},
-	}, NewAppHandler())
+	}, NewAppHandler(nil, nil))
 	if err == nil {
 		t.Fatal("expected invalid base64 error, got nil")
 	}
