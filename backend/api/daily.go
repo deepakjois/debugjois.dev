@@ -49,7 +49,7 @@ func loadDailyNoteContentFromGitHub(ctx context.Context, client *github.Client, 
 	if err != nil {
 		var githubError *github.ErrorResponse
 		if errors.As(err, &githubError) && githubError.Response != nil && githubError.Response.StatusCode == http.StatusNotFound {
-			return "", nil
+			return fmt.Sprintf("### %s\n", date), nil
 		}
 
 		return "", fmt.Errorf("get GitHub contents for %q: %w", path, err)

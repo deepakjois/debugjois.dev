@@ -43,6 +43,25 @@ func TestValidateDailyTitle(t *testing.T) {
 	}
 }
 
+func TestLoadDailyNoteContentFromGitHubMissingFile(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Not Found"}`, http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	client := github.NewClient(server.Client())
+	client.BaseURL = mustParseURL(t, server.URL+"/")
+
+	content, err := loadDailyNoteContentFromGitHub(context.Background(), client, "2026-03-13")
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	if content != "### 2026-03-13\n" {
+		t.Fatalf("expected default heading for missing note, got %q", content)
+	}
+}
+
 func TestSaveDailyNoteContentToGitHubCreatesFileWhenMissing(t *testing.T) {
 	var gotMethod string
 	var gotPath string
