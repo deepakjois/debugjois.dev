@@ -31,10 +31,11 @@ type SyncNotesToGdriveCmd struct {
 }
 
 type driveFile struct {
-	ID          string
-	Name        string
-	MimeType    string
-	MD5Checksum string
+	ID           string
+	Name         string
+	MimeType     string
+	MD5Checksum  string
+	ModifiedTime string
 }
 
 func (cmd *SyncNotesToGdriveCmd) Run() error {
@@ -138,7 +139,7 @@ func listDriveChildren(drv *drive.Service, folderID string) (*driveChildren, err
 	for {
 		query := drv.Files.List().
 			Q(fmt.Sprintf("'%s' in parents and trashed = false", folderID)).
-			Fields("nextPageToken, files(id, name, mimeType, md5Checksum)")
+			Fields("nextPageToken, files(id, name, mimeType, md5Checksum, modifiedTime)")
 
 		if pageToken != "" {
 			query = query.PageToken(pageToken)
@@ -151,10 +152,11 @@ func listDriveChildren(drv *drive.Service, folderID string) (*driveChildren, err
 
 		for _, file := range result.Files {
 			entry := &driveFile{
-				ID:          file.Id,
-				Name:        file.Name,
-				MimeType:    file.MimeType,
-				MD5Checksum: file.Md5Checksum,
+				ID:           file.Id,
+				Name:         file.Name,
+				MimeType:     file.MimeType,
+				MD5Checksum:  file.Md5Checksum,
+				ModifiedTime: file.ModifiedTime,
 			}
 
 			if file.MimeType == driveFolderMimeType {
