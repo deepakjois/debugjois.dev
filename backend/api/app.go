@@ -19,10 +19,12 @@ type rootResponse struct {
 }
 
 type app struct {
-	loadDailyNote    func(ctx context.Context, date string) (string, error)
-	saveDailyNote    func(ctx context.Context, title, contents, commitMessage string) error
-	currentDailyDate func() string
-	currentTimestamp func() string
+	loadDailyNote      func(ctx context.Context, date string) (string, error)
+	saveDailyNote      func(ctx context.Context, title, contents, commitMessage string) error
+	currentDailyDate   func() string
+	currentTimestamp   func() string
+	linkPreviewAPIKey  string
+	linkPreviewBaseURL string
 }
 
 func NewAppHandler(
@@ -30,17 +32,22 @@ func NewAppHandler(
 	saveDailyNote func(ctx context.Context, title, contents, commitMessage string) error,
 	currentDailyDate func() string,
 	currentTimestamp func() string,
+	linkPreviewAPIKey string,
+	linkPreviewBaseURL string,
 ) http.Handler {
 	a := &app{
-		loadDailyNote:    loadDailyNote,
-		saveDailyNote:    saveDailyNote,
-		currentDailyDate: currentDailyDate,
-		currentTimestamp: currentTimestamp,
+		loadDailyNote:      loadDailyNote,
+		saveDailyNote:      saveDailyNote,
+		currentDailyDate:   currentDailyDate,
+		currentTimestamp:   currentTimestamp,
+		linkPreviewAPIKey:  linkPreviewAPIKey,
+		linkPreviewBaseURL: linkPreviewBaseURL,
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", handleRootGet)
 	mux.HandleFunc("GET /daily", a.handleDailyGet)
 	mux.HandleFunc("POST /daily", a.handleDailyPost)
+	mux.HandleFunc("GET /linkpreview", newLinkPreviewHandler(a.linkPreviewAPIKey, a.linkPreviewBaseURL))
 	return mux
 }
 

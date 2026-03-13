@@ -106,6 +106,20 @@ export async function getDailyNote(token: string, signal?: AbortSignal): Promise
   };
 }
 
+export interface LinkPreview {
+  title: string;
+  description: string;
+}
+
+export async function getLinkPreview(
+  token: string,
+  url: string,
+  signal?: AbortSignal,
+): Promise<LinkPreview> {
+  const response = await request(`/linkpreview?q=${encodeURIComponent(url)}`, { signal, token });
+  return (await response.json()) as LinkPreview;
+}
+
 export async function saveDailyNote(
   token: string,
   note: DailyNote,

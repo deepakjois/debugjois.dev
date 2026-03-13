@@ -29,8 +29,9 @@ type InfraStackProps struct {
 }
 
 const (
-	stackName           = "InfraStack"
-	githubPATSecretName = "debugjois-dev/github-pat"
+	stackName                   = "InfraStack"
+	githubPATSecretName         = "debugjois-dev/github-pat"
+	linkPreviewAPIKeySecretName = "debugjois-dev/linkpreview-api-key"
 )
 
 func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps) awscdk.Stack {
@@ -63,6 +64,18 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 		stack,
 		jsii.String("GitHubPatSecretRef"),
 		githubPATSecret.AttrId(),
+	)
+
+	linkPreviewAPIKeySecret := awssecretsmanager.NewCfnSecret(stack, jsii.String("LinkPreviewAPIKeySecret"), &awssecretsmanager.CfnSecretProps{
+		Name:        jsii.String(linkPreviewAPIKeySecretName),
+		Description: jsii.String("LinkPreview API key for the debugjois.dev backend"),
+	})
+	linkPreviewAPIKeySecret.ApplyRemovalPolicy(awscdk.RemovalPolicy_DESTROY, nil)
+
+	linkPreviewAPIKeySecretRef := awssecretsmanager.Secret_FromSecretCompleteArn(
+		stack,
+		jsii.String("LinkPreviewAPIKeySecretRef"),
+		linkPreviewAPIKeySecret.AttrId(),
 	)
 
 	imageRepoName, imageTagOrDigest, err := resolveImageReference(context.Background(), imageURI)
@@ -104,10 +117,12 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 		Timeout:      awscdk.Duration_Seconds(jsii.Number(30)),
 		Description:  jsii.String("debugjois.dev Lambda function"),
 		Environment: &map[string]*string{
-			"GITHUB_PAT_SECRET_ARN": githubPATSecret.AttrId(),
+			"GITHUB_PAT_SECRET_ARN":          githubPATSecret.AttrId(),
+			"LINKPREVIEW_API_KEY_SECRET_ARN": linkPreviewAPIKeySecret.AttrId(),
 		},
 	})
 	githubPATSecretRef.GrantRead(fn, nil)
+	linkPreviewAPIKeySecretRef.GrantRead(fn, nil)
 
 	// Create HTTP API Gateway with Lambda proxy integration
 	lambdaIntegration := awsapigatewayv2integrations.NewHttpLambdaIntegration(
@@ -189,6 +204,14 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 	awscdk.NewCfnOutput(stack, jsii.String("GitHubPatSecretName"), &awscdk.CfnOutputProps{
 		Value:       jsii.String(githubPATSecretName),
 		Description: jsii.String("Secrets Manager name for the GitHub PAT"),
+	})
+	awscdk.NewCfnOutput(stack, jsii.String("LinkPreviewAPIKeySecretArn"), &awscdk.CfnOutputProps{
+		Value:       linkPreviewAPIKeySecret.AttrId(),
+		Description: jsii.String("Secrets Manager ARN for the LinkPreview API key"),
+	})
+	awscdk.NewCfnOutput(stack, jsii.String("LinkPreviewAPIKeySecretName"), &awscdk.CfnOutputProps{
+		Value:       jsii.String(linkPreviewAPIKeySecretName),
+		Description: jsii.String("Secrets Manager name for the LinkPreview API key"),
 	})
 	awscdk.NewCfnOutput(stack, jsii.String("GitHubActionsRoleArn"), &awscdk.CfnOutputProps{
 		Value:       githubActionsRole.RoleArn(),

@@ -3,11 +3,67 @@ import CodeMirror from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
+import { type Extension } from "@codemirror/state";
 import { tags } from "@lezer/highlight";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAuth } from "../auth";
-import { BackendError, getDailyNote, saveDailyNote } from "../services/backend";
+import { BackendError, getDailyNote, getLinkPreview, saveDailyNote } from "../services/backend";
 import "./logger.css";
+
+function isUrl(text: string): boolean {
+  return /^https?:\/\/\S+$/.test(text.trim());
+}
+
+function buildPasteExtension(token: string): Extension {
+  return EditorView.domEventHandlers({
+    paste(event: ClipboardEvent, view: EditorView) {
+      const text = event.clipboardData?.getData("text/plain")?.trim() ?? "";
+      if (!isUrl(text)) return false;
+
+      event.preventDefault();
+
+      const { from, to } = view.state.selection.main;
+      const selectedText = view.state.sliceDoc(from, to);
+
+      if (selectedText) {
+        view.dispatch({
+          changes: { from, to, insert: `[${selectedText}](${text})` },
+          selection: { anchor: from + selectedText.length + text.length + 4 },
+        });
+        return true;
+      }
+
+      const placeholder = `[Fetching title...](${text})`;
+      view.dispatch({
+        changes: { from, to, insert: placeholder },
+        selection: { anchor: from + placeholder.length },
+      });
+
+      void getLinkPreview(token, text)
+        .then((preview) => {
+          const title = preview.title.trim() || text;
+          const link = `[${title}](${text})`;
+          const content = view.state.doc.toString();
+          const idx = content.indexOf(placeholder);
+          if (idx !== -1) {
+            view.dispatch({ changes: { from: idx, to: idx + placeholder.length, insert: link } });
+          }
+        })
+        .catch(() => {
+          const content = view.state.doc.toString();
+          const idx = content.indexOf(placeholder);
+          if (idx !== -1) {
+            const fallback = `[${text}](${text})`;
+            view.dispatch({
+              changes: { from: idx, to: idx + placeholder.length, insert: fallback },
+            });
+          }
+        });
+
+      return true;
+    },
+  });
+}
 
 type LoadState = "checking" | "ready" | "unauthenticated" | "forbidden" | "error";
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -107,8 +163,9 @@ export function Logger() {
         autocapitalize: "off",
         lang: "en",
       }),
+      buildPasteExtension(token),
     ],
-    [],
+    [token],
   );
 
   useEffect(() => {

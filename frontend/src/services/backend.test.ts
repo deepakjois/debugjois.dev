@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BackendError, getDailyNote, saveDailyNote, validateSession } from "./backend";
+import {
+  BackendError,
+  getDailyNote,
+  getLinkPreview,
+  saveDailyNote,
+  validateSession,
+} from "./backend";
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -86,6 +92,30 @@ describe("backend service", () => {
       method: "POST",
       signal: undefined,
     });
+  });
+
+  it("fetches a link preview", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ title: "Example Title", description: "Example description" }), {
+        status: 200,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getLinkPreview("token-123", "https://example.com")).resolves.toEqual({
+      title: "Example Title",
+      description: "Example description",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:3000/linkpreview?q=https%3A%2F%2Fexample.com",
+      {
+        body: undefined,
+        headers: { Authorization: "Bearer token-123" },
+        method: "GET",
+        signal: undefined,
+      },
+    );
   });
 
   it("maps network failures to backend errors", async () => {

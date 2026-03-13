@@ -30,6 +30,8 @@ func newTestHandler() http.Handler {
 		func(context.Context, string, string, string) error { return nil },
 		func() string { return "" },
 		func() string { return "" },
+		"",
+		"",
 	)
 }
 
@@ -99,6 +101,8 @@ func TestAppDailyGet(t *testing.T) {
 		nil,
 		func() string { return "2026-03-12" },
 		nil,
+		"",
+		"",
 	)
 
 	res := serve(t, h, http.MethodGet, "/daily")
@@ -129,6 +133,8 @@ func TestAppDailyGetMissingNote(t *testing.T) {
 		nil,
 		func() string { return "2026-03-13" },
 		nil,
+		"",
+		"",
 	)
 
 	res := serve(t, h, http.MethodGet, "/daily")
@@ -156,6 +162,8 @@ func TestAppDailyGetLoaderError(t *testing.T) {
 		nil,
 		func() string { return "2026-03-12" },
 		nil,
+		"",
+		"",
 	)
 
 	res := serve(t, h, http.MethodGet, "/daily")
@@ -199,6 +207,8 @@ func TestAppDailyPost(t *testing.T) {
 		},
 		func() string { return "2026-03-12" },
 		func() string { return "2026-03-12 15:44:16" },
+		"",
+		"",
 	)
 
 	payload := []byte(`{"title":"2026-03-12.md","contents":"` + encodeDailyContents("hello from markdown\nadditional line\n") + `"}`)
@@ -227,7 +237,7 @@ func TestAppDailyPost(t *testing.T) {
 }
 
 func TestAppDailyPostInvalidJSON(t *testing.T) {
-	h := NewAppHandler(nil, nil, func() string { return "2026-03-12" }, nil)
+	h := NewAppHandler(nil, nil, func() string { return "2026-03-12" }, nil, "", "")
 
 	res := serveBody(t, h, http.MethodPost, "/daily", []byte(`{"title":`))
 
@@ -242,7 +252,7 @@ func TestAppDailyPostInvalidJSON(t *testing.T) {
 }
 
 func TestAppDailyPostInvalidTitle(t *testing.T) {
-	h := NewAppHandler(nil, nil, func() string { return "2026-03-12" }, nil)
+	h := NewAppHandler(nil, nil, func() string { return "2026-03-12" }, nil, "", "")
 
 	res := serveBody(t, h, http.MethodPost, "/daily", []byte(`{"title":"2026-03-12","contents":"`+encodeDailyContents("hello")+`"}`))
 
@@ -257,7 +267,7 @@ func TestAppDailyPostInvalidTitle(t *testing.T) {
 }
 
 func TestAppDailyPostWrongDate(t *testing.T) {
-	h := NewAppHandler(nil, nil, func() string { return "2026-03-12" }, nil)
+	h := NewAppHandler(nil, nil, func() string { return "2026-03-12" }, nil, "", "")
 
 	res := serveBody(t, h, http.MethodPost, "/daily", []byte(`{"title":"2026-03-11.md","contents":"`+encodeDailyContents("hello")+`"}`))
 
@@ -272,7 +282,7 @@ func TestAppDailyPostWrongDate(t *testing.T) {
 }
 
 func TestAppDailyPostInvalidBase64(t *testing.T) {
-	h := NewAppHandler(nil, nil, func() string { return "2026-03-12" }, nil)
+	h := NewAppHandler(nil, nil, func() string { return "2026-03-12" }, nil, "", "")
 
 	res := serveBody(t, h, http.MethodPost, "/daily", []byte(`{"title":"2026-03-12.md","contents":"%%%"}`))
 
@@ -292,6 +302,8 @@ func TestAppDailyPostSaveError(t *testing.T) {
 		func(context.Context, string, string, string) error { return errors.New("boom") },
 		func() string { return "2026-03-12" },
 		func() string { return "2026-03-12 15:44:16" },
+		"",
+		"",
 	)
 
 	res := serveBody(t, h, http.MethodPost, "/daily", []byte(`{"title":"2026-03-12.md","contents":"`+encodeDailyContents("hello")+`"}`))

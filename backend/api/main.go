@@ -21,7 +21,7 @@ func main() {
 	isLambda := isLambdaRuntime()
 
 	if isLambda {
-		if err := loadLambdaGitHubToken(ctx); err != nil {
+		if err := loadLambdaSecrets(ctx); err != nil {
 			log.Fatal(err)
 		}
 	} else {
@@ -44,6 +44,8 @@ func main() {
 		},
 		todayStringInCET,
 		currentTimestampInCET,
+		os.Getenv(linkPreviewAPIKeyEnvVar),
+		linkPreviewBaseURL,
 	)
 
 	if isLambda {
