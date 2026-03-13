@@ -1,4 +1,4 @@
-name: Site Vulnerability Check
+name: Vulnerability Check
 
 on:
   pull_request:
@@ -8,13 +8,15 @@ on:
 jobs:
   govulncheck:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: site
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/site-setup-and-build
+      - uses: actions/setup-go@v6
         with:
-          build: 'false'
+          go-version-file: 'go.work'
+          cache: true
+          cache-dependency-path: |
+            site/go.sum
+            backend/api/go.sum
+            infra/go.sum
       - name: Run govulncheck
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
