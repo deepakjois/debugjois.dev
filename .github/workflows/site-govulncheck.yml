@@ -18,5 +18,14 @@ jobs:
             site/go.sum
             backend/api/go.sum
             infra/go.sum
-      - name: Run govulncheck
-        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Run govulncheck (site)
+        working-directory: site
+        run: govulncheck ./...
+      - name: Run govulncheck (backend/api)
+        working-directory: backend/api
+        run: govulncheck ./...
+      - name: Run govulncheck (infra)
+        working-directory: infra
+        run: govulncheck ./...
