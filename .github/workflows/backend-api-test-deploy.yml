@@ -34,7 +34,7 @@ jobs:
         working-directory: backend/api
         run: go test ./...
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
 
