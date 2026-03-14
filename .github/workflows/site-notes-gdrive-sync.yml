@@ -1,16 +1,7 @@
 name: Site Recent Notes GDrive Sync
 
 on:
-  workflow_dispatch:
-  push:
-    branches: [ main ]
-    paths:
-      - 'site/content/daily-notes/**'
-      - 'site/go.mod'
-      - 'site/go.sum'
-      - 'site/main.go'
-      - 'site/sync_notes_to_gdrive.go'
-      - '.github/workflows/site-notes-gdrive-sync.yml'
+  workflow_dispatch: null  # disabled: trigger manually if needed
 
 jobs:
   sync-notes:
