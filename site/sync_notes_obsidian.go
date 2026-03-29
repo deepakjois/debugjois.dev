@@ -27,10 +27,10 @@ type SyncNotesObsidianCmd struct {
 
 func (sn *SyncNotesObsidianCmd) Run() error {
 	if !sn.NoGit {
-		if status, err := script.Exec("git status -s").String(); err != nil {
+		if status, err := script.Exec("git status -s content/daily-notes/").String(); err != nil {
 			return fmt.Errorf("failed to check git status: %w", err)
 		} else if status != "" {
-			return fmt.Errorf("git repository is not clean. Please commit or stash changes")
+			return fmt.Errorf("content/daily-notes/ has uncommitted changes. Please commit or stash them")
 		}
 
 		if _, err := script.Exec("git pull").String(); err != nil {
