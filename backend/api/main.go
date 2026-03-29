@@ -30,18 +30,9 @@ func main() {
 		}
 	}
 
-	client, err := newGitHubClient()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	app := NewAppHandler(
-		func(ctx context.Context, date string) (string, error) {
-			return loadDailyNoteContentFromGitHub(ctx, client, date)
-		},
-		func(ctx context.Context, title, contents, commitMessage string) error {
-			return saveDailyNoteContentToGitHub(ctx, client, title, contents, commitMessage)
-		},
+		loadDailyNoteContentFromDrive,
+		saveDailyNoteContentToDrive,
 		todayStringInCET,
 		currentTimestampInCET,
 		os.Getenv(linkPreviewAPIKeyEnvVar),

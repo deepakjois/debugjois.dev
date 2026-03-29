@@ -93,7 +93,9 @@ The backend API lives in `backend/api/` and is written in Go.
 
 - runs as a normal HTTP server locally
 - runs as an AWS Lambda when `AWS_LAMBDA_RUNTIME_API` is set
-- currently serves `/` (also used as the healthcheck endpoint)
+- serves `/` (also used as the healthcheck endpoint), `/daily` (read/write daily notes via Google Drive), and `/linkpreview`
+- reads/writes daily notes from a Google Drive shared drive (same `obsidian` drive and folder structure as the site sync)
+- authenticates to Google Drive using Application Default Credentials (ADC); locally via `gcloud auth`, in Lambda via a bundled credential config for Workload Identity Federation
 - reads authenticated user email from API Gateway JWT context when invoked via Lambda
 
 ### Common commands
@@ -110,9 +112,18 @@ Run these from `backend/api/`:
 
 | Variable | Required | Description |
 |---|---|---|
-| `GITHUB_TOKEN` | Yes for local dev | GitHub PAT loaded from `backend/api/.env` when running locally |
 | `PORT` | No (default: `8000`) | HTTP server port for local dev |
 | `AWS_LAMBDA_RUNTIME_API` | In Lambda only | Set automatically by Lambda runtime; switches server to Lambda mode |
+
+### Google Drive authentication (local dev)
+
+The `/daily` endpoint uses ADC to access Google Drive. Configure via:
+
+```bash
+gcloud auth application-default login \
+  --impersonate-service-account=gdrive-obsidian@daily-notes-obsidian-gdrive.iam.gserviceaccount.com \
+  --scopes=https://www.googleapis.com/auth/drive
+```
 
 ### Image build
 
@@ -152,8 +163,9 @@ Run these from `infra/` unless the command already includes the path:
 - `infra/deploy.sh` calls `../backend/build-and-push-image.sh` when `--build-image` is used and passes the resulting image URI directly to `infra.go`
 - the API URL is emitted as the `ApiUrl` stack output after deploy
 - `infra/cloudfront/domain-redirect-debugjois-dev.js` is the source for the production CloudFront Function that redirects the apex domain and rewrites `/app` SPA routes
-- the CDK stack creates a Secrets Manager secret named `debugjois-dev/github-pat`; set or rotate its value outside CDK with `aws secretsmanager update-secret --secret-id debugjois-dev/github-pat --secret-string '<github-pat>'`
-- Lambda receives `GITHUB_PAT_SECRET_ARN`, reads the PAT from Secrets Manager during startup, and sets `GITHUB_TOKEN` in-process
+- Lambda receives `GOOGLE_APPLICATION_CREDENTIALS=/gcp-credentials.json` pointing to a GCP Workload Identity Federation credential config bundled in the Docker image; this allows the Lambda to authenticate to Google Drive via its AWS IAM role without storing GCP secrets
+- the GCP credential config is at `backend/api/gcp-credentials.json` and is safe to commit (it contains no secrets, only the WIF pool/provider reference and service account impersonation URL)
+- GCP WIF setup: AWS provider `aws-lambda-provider` in pool `github-actions-pool` (project `daily-notes-obsidian-gdrive`), with service account `gdrive-obsidian@daily-notes-obsidian-gdrive.iam.gserviceaccount.com` granting impersonation to the Lambda role
 
 ## Frontend
 

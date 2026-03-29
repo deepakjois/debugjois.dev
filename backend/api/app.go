@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -59,6 +60,7 @@ func (a *app) handleDailyGet(w http.ResponseWriter, r *http.Request) {
 	date := a.currentDailyDate()
 	content, err := a.loadDailyNote(r.Context(), date)
 	if err != nil {
+		log.Printf("loadDailyNote error: %v", err)
 		writeHTTPResponse(w, http.StatusInternalServerError, errorResponse{Error: "failed to load daily note"})
 		return
 	}
@@ -98,6 +100,7 @@ func (a *app) handleDailyPost(w http.ResponseWriter, r *http.Request) {
 
 	commitMessage := fmt.Sprintf("Web Editor Update %s", a.currentTimestamp())
 	if err := a.saveDailyNote(r.Context(), payload.Title, string(contents), commitMessage); err != nil {
+		log.Printf("saveDailyNote error: %v", err)
 		writeHTTPResponse(w, http.StatusInternalServerError, errorResponse{Error: "failed to save daily note"})
 		return
 	}

@@ -13,8 +13,6 @@ import (
 )
 
 const (
-	githubTokenEnvVar                = "GITHUB_TOKEN"
-	githubPATSecretARNEnvVar         = "GITHUB_PAT_SECRET_ARN"
 	linkPreviewAPIKeyEnvVar          = "LINKPREVIEW_API_KEY"
 	linkPreviewAPIKeySecretARNEnvVar = "LINKPREVIEW_API_KEY_SECRET_ARN"
 	linkPreviewBaseURL               = "https://api.linkpreview.net"
@@ -24,10 +22,6 @@ const (
 func loadLocalEnvFile() error {
 	if err := godotenv.Overload(defaultLocalDotEnvPath); err != nil {
 		return fmt.Errorf("load local env file %q: %w", defaultLocalDotEnvPath, err)
-	}
-
-	if strings.TrimSpace(os.Getenv(githubTokenEnvVar)) == "" {
-		return fmt.Errorf("%s must be set in %s for local development", githubTokenEnvVar, defaultLocalDotEnvPath)
 	}
 
 	if strings.TrimSpace(os.Getenv(linkPreviewAPIKeyEnvVar)) == "" {
@@ -59,24 +53,6 @@ func fetchSecretValue(ctx context.Context, arn string) (string, error) {
 	return value, nil
 }
 
-func loadLambdaGitHubToken(ctx context.Context) error {
-	secretARN := strings.TrimSpace(os.Getenv(githubPATSecretARNEnvVar))
-	if secretARN == "" {
-		return fmt.Errorf("%s must be set in Lambda", githubPATSecretARNEnvVar)
-	}
-
-	token, err := fetchSecretValue(ctx, secretARN)
-	if err != nil {
-		return fmt.Errorf("load GitHub token: %w", err)
-	}
-
-	if err := os.Setenv(githubTokenEnvVar, token); err != nil {
-		return fmt.Errorf("set %s: %w", githubTokenEnvVar, err)
-	}
-
-	return nil
-}
-
 func loadLambdaLinkPreviewAPIKey(ctx context.Context) error {
 	secretARN := strings.TrimSpace(os.Getenv(linkPreviewAPIKeySecretARNEnvVar))
 	if secretARN == "" {
@@ -96,13 +72,5 @@ func loadLambdaLinkPreviewAPIKey(ctx context.Context) error {
 }
 
 func loadLambdaSecrets(ctx context.Context) error {
-	if err := loadLambdaGitHubToken(ctx); err != nil {
-		return err
-	}
-
-	if err := loadLambdaLinkPreviewAPIKey(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return loadLambdaLinkPreviewAPIKey(ctx)
 }

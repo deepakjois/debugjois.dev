@@ -17,6 +17,7 @@ FROM scratch
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=builder /bootstrap /bootstrap
+COPY gcp-credentials.json /gcp-credentials.json
 
 USER 65532:65532
 EXPOSE 8000
