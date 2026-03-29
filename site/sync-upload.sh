@@ -5,7 +5,11 @@ set -euo pipefail
 ./debugjois-site sync-notes-obsidian
 
 # Commit any changes; capture output to detect whether a commit was made
-commit_output=$(./debugjois-site commit-notes --skip-ci 2>&1)
+commit_args=()
+if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+  commit_args+=(--skip-ci)
+fi
+commit_output=$(./debugjois-site commit-notes "${commit_args[@]}" 2>&1)
 echo "$commit_output"
 
 if echo "$commit_output" | grep -q "No changes to commit."; then
