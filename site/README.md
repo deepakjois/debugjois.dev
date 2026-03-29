@@ -25,7 +25,8 @@ go build -o debugjois-site .
 ./debugjois-site build --dev
 ./debugjois-site build --rebuild
 ./debugjois-site sync-notes-obsidian
-./debugjois-site sync-notes-obsidian --no-git
+./debugjois-site commit-notes
+./debugjois-site commit-notes --skip-ci
 ./debugjois-site upload
 ./debugjois-site build-newsletter
 ./debugjois-site build-newsletter --post

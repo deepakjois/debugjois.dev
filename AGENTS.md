@@ -58,7 +58,8 @@ Run all site commands from `site/`.
 - `./debugjois-site build --dev` - include drafts and scratch content
 - `./debugjois-site build --rebuild` - rebuild the entire archive
 - `./debugjois-site sync-notes-obsidian` - sync daily notes from Google Drive shared drive
-- `./debugjois-site sync-notes-obsidian --no-git` - sync without committing
+- `./debugjois-site commit-notes` - commit any changes in the daily notes folder
+- `./debugjois-site commit-notes --skip-ci` - commit with `[skip ci]` appended to the message
 - `./debugjois-site upload` - upload generated files to S3
 - `./debugjois-site upload --dryrun` - preview upload without writing to S3
 - `./debugjois-site upload --source-dir=<path>` - override source directory
@@ -81,6 +82,7 @@ Run all site commands from `site/`.
 ### Notes
 
 - `sync-notes-obsidian` pulls daily notes from a Google Drive shared drive using Application Default Credentials (ADC); configure via `gcloud auth application-default login --impersonate-service-account=<sa-email> --scopes=https://www.googleapis.com/auth/drive`
+- `commit-notes` stages and commits changes under `content/daily-notes/`; the commit message includes a timestamp and optionally `[skip ci]`
 - templates live in `site/templates/`, static assets in `site/static/`
 
 ## Backend API
