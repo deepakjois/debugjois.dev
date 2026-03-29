@@ -1,0 +1,70 @@
+name: Site Sync, Build and Deploy
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/15 * * * *'
+
+jobs:
+  sync-build-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+    defaults:
+      run:
+        working-directory: site
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - uses: fregante/setup-git-user@v2
+
+    - id: gcp-auth
+      uses: google-github-actions/auth@v3
+      with:
+        workload_identity_provider: 'projects/1016117555218/locations/global/workloadIdentityPools/github-actions-pool/providers/github-oidc-provider'
+        service_account: 'gdrive-obsidian@daily-notes-obsidian-gdrive.iam.gserviceaccount.com'
+
+    - uses: ./.github/actions/site-setup-and-build
+
+    - name: Run tests
+      run: go test ./...
+
+    - name: Sync notes from Google Drive
+      id: sync
+      run: |
+        ./debugjois-site sync-notes-obsidian --skip-ci 2>&1 | tee /tmp/sync-output.txt
+        if grep -q "No changes to commit." /tmp/sync-output.txt; then
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Push sync commit
+      if: steps.sync.outputs.changed == 'true'
+      run: git push
+
+    - name: Restore build cache
+      if: steps.sync.outputs.changed == 'true'
+      uses: actions/cache@v5
+      with:
+        path: site/build
+        key: site-build-${{ hashFiles('site/content/**', 'site/templates/**', 'site/static/**') }}
+        restore-keys: |
+          site-build-
+
+    - name: Build site
+      if: steps.sync.outputs.changed == 'true'
+      run: ./debugjois-site build
+
+    - name: Configure AWS credentials
+      if: steps.sync.outputs.changed == 'true'
+      uses: aws-actions/configure-aws-credentials@v6
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: us-east-2
+
+    - name: Upload to S3
+      if: steps.sync.outputs.changed == 'true'
+      run: ./debugjois-site upload

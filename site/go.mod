@@ -15,6 +15,8 @@ require (
 	github.com/samber/lo v1.52.0
 	github.com/yuin/goldmark v1.7.16
 	go.abhg.dev/goldmark/hashtag v0.4.0
+	golang.org/x/oauth2 v0.34.0
+	google.golang.org/api v0.264.0
 )
 
 require (
@@ -50,7 +52,6 @@ require (
 	github.com/itchyny/timefmt-go v0.1.7 // indirect
 	github.com/otiai10/mint v1.6.3 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/stretchr/testify v1.11.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.61.0 // indirect
 	go.opentelemetry.io/otel v1.39.0 // indirect
@@ -58,12 +59,10 @@ require (
 	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/net v0.51.0 // indirect
-	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/tools v0.42.0 // indirect
-	google.golang.org/api v0.264.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260122232226-8e98ce8d340d // indirect
 	google.golang.org/grpc v1.78.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect

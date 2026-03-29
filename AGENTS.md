@@ -57,8 +57,8 @@ Run all site commands from `site/`.
 - `./debugjois-site build` - build the static site into `build/`
 - `./debugjois-site build --dev` - include drafts and scratch content
 - `./debugjois-site build --rebuild` - rebuild the entire archive
-- `./debugjois-site sync-notes-obsidian --obsidian-vault=<path>` - sync daily notes from Obsidian
-- `./debugjois-site sync-notes-obsidian --obsidian-vault=<path> --no-git` - sync without committing
+- `./debugjois-site sync-notes-obsidian` - sync daily notes from Google Drive shared drive
+- `./debugjois-site sync-notes-obsidian --no-git` - sync without committing
 - `./debugjois-site upload` - upload generated files to S3
 - `./debugjois-site upload --dryrun` - preview upload without writing to S3
 - `./debugjois-site upload --source-dir=<path>` - override source directory
@@ -75,10 +75,12 @@ Run all site commands from `site/`.
 |---|---|---|
 | `BUTTONDOWN_API_KEY` | For newsletter posting | Buttondown API key |
 | `RESEND_API_KEY` | For notification emails | Resend API key |
+| `OBSIDIAN_SHARED_DRIVE` | No (default: `obsidian`) | Name of the Google Drive shared drive |
+| `OBSIDIAN_VAULT_FOLDER` | No (default: `PersonalKnowledgeWiki`) | Vault folder name within the shared drive |
 
 ### Notes
 
-- `watch.sh` wraps `sync-notes-obsidian` with `viddy`
+- `sync-notes-obsidian` pulls daily notes from a Google Drive shared drive using Application Default Credentials (ADC); configure via `gcloud auth application-default login --impersonate-service-account=<sa-email> --scopes=https://www.googleapis.com/auth/drive`
 - templates live in `site/templates/`, static assets in `site/static/`
 
 ## Backend API
@@ -210,7 +212,7 @@ Workflows live in `.github/workflows/`:
 
 | Workflow | Trigger | Description |
 |---|---|---|
-| `site-build-deploy.yml` | Daily cron (23:01 UTC) + manual | Build and deploy static site to S3 |
+| `site-sync-build-deploy.yml` | Every 15 min + manual | Sync notes from Google Drive, build and deploy static site to S3 |
 | `go-lint.yml` | Push to Go paths on main | Run `golangci-lint` with `gofumpt` and `staticcheck` for `site/`, `backend/api/`, and `infra/` |
 | `site-test-and-deploy.yml` | Push to `site/**` on main | Run site tests, build, and deploy to S3 |
 | `site-govulncheck.yml` | Push to `site/**` on main | Run `govulncheck` on site module |
