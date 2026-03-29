@@ -74,7 +74,7 @@ func (sn *SyncNotesObsidianCmd) Run() error {
 	}
 
 	if !sn.NoGit {
-		status, err := script.Exec("git status -s").String()
+		status, err := script.Exec("git status -s content/daily-notes/").String()
 		if err != nil {
 			return fmt.Errorf("failed to check git status after sync: %w", err)
 		}
