@@ -8,9 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
-	"github.com/bitfield/script"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
@@ -21,23 +19,9 @@ const driveFolderMimeType = "application/vnd.google-apps.folder"
 type SyncNotesObsidianCmd struct {
 	SharedDriveName string `env:"OBSIDIAN_SHARED_DRIVE" default:"obsidian" help:"Name of the Google Drive shared drive"`
 	VaultFolder     string `env:"OBSIDIAN_VAULT_FOLDER" default:"PersonalKnowledgeWiki" help:"Name of the vault folder within the shared drive"`
-	NoGit           bool   `help:"Skip git operations and only run sync"`
-	SkipCI          bool   `help:"Append [skip ci] to the commit message"`
 }
 
 func (sn *SyncNotesObsidianCmd) Run() error {
-	if !sn.NoGit {
-		if status, err := script.Exec("git status -s content/daily-notes/").String(); err != nil {
-			return fmt.Errorf("failed to check git status: %w", err)
-		} else if status != "" {
-			return fmt.Errorf("content/daily-notes/ has uncommitted changes. Please commit or stash them")
-		}
-
-		if _, err := script.Exec("git pull").String(); err != nil {
-			return fmt.Errorf("failed to pull latest changes: %w", err)
-		}
-	}
-
 	ctx := context.Background()
 
 	creds, err := google.FindDefaultCredentials(ctx, drive.DriveScope)
@@ -71,33 +55,6 @@ func (sn *SyncNotesObsidianCmd) Run() error {
 
 	if err := syncDriveFolder(srv, driveID, dailyFolderID, "content/daily-notes"); err != nil {
 		return fmt.Errorf("sync from Drive: %w", err)
-	}
-
-	if !sn.NoGit {
-		status, err := script.Exec("git status -s content/daily-notes/").String()
-		if err != nil {
-			return fmt.Errorf("failed to check git status after sync: %w", err)
-		}
-		if status == "" {
-			fmt.Println("No changes to commit.")
-			return nil
-		}
-
-		currentDatetime := time.Now().Format("2006-01-02 15:04:05")
-		if _, err := script.Exec("git add content/daily-notes/").Stdout(); err != nil {
-			return fmt.Errorf("failed to stage changes: %w", err)
-		}
-		msg := fmt.Sprintf("Obsidian Gdrive Sync %s", currentDatetime)
-		if sn.SkipCI {
-			msg += " [skip ci]"
-		}
-		if _, err := script.Exec(fmt.Sprintf("git commit -m '%s'", msg)).Stdout(); err != nil {
-			return fmt.Errorf("failed to commit changes: %w", err)
-		}
-		fmt.Println("Changes committed successfully.")
-		if _, err := script.Exec("git push").Stdout(); err != nil {
-			return fmt.Errorf("failed to push changes: %w", err)
-		}
 	}
 
 	return nil

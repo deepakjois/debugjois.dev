@@ -7,6 +7,7 @@ import (
 var CLI struct {
 	Build             BuildCmd             `cmd:"" help:"Build the static site"`
 	SyncNotesObsidian SyncNotesObsidianCmd `cmd:"" help:"Sync daily notes from Google Drive"`
+	CommitNotes       CommitNotesCmd       `cmd:"" help:"Commit any changes in the daily notes folder"`
 	Upload            UploadCmd            `cmd:"" help:"Upload files to S3 bucket"`
 	BuildNewsletter   BuildNewsletterCmd   `cmd:"" help:"Build weekly newsletter from daily notes"`
 }
