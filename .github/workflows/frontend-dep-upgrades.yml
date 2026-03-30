@@ -1,0 +1,50 @@
+name: Frontend Dependency Upgrades
+
+on:
+  schedule:
+    - cron: '22 10 * * 1'
+  workflow_dispatch:
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for upgrades and apply
+        id: upgrades
+        run: ../.github/scripts/frontend-dep-upgrades.sh
+
+      - name: Validate frontend
+        if: steps.upgrades.outputs.has_updates == 'true'
+        uses: ./.github/actions/frontend-lint-build-test
+        with:
+          install: 'false'
+          vite-site-backend-url: ${{ secrets.VITE_SITE_BACKEND_URL }}
+          vite-google-client-id: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+
+      - name: Create Pull Request
+        if: steps.upgrades.outputs.has_updates == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: deps/frontend-upgrades
+          title: "frontend: upgrade npm dependencies"
+          body: ${{ steps.upgrades.outputs.body }}
+          commit-message: "frontend: upgrade npm dependencies"
+          labels: dependencies
+          delete-branch: true

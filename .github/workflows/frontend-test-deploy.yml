@@ -23,19 +23,10 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - name: Install dependencies
-        run: npm ci
-      - name: Check formatting
-        run: npm run fmt:check
-      - name: Run lint
-        run: npm run lint
-      - name: Run tests
-        run: npm test
-      - name: Build frontend
-        run: npm run build
-        env:
-          VITE_SITE_BACKEND_URL: ${{ secrets.VITE_SITE_BACKEND_URL }}
-          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+      - uses: ./.github/actions/frontend-lint-build-test
+        with:
+          vite-site-backend-url: ${{ secrets.VITE_SITE_BACKEND_URL }}
+          vite-google-client-id: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
