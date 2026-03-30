@@ -3,16 +3,13 @@ set -euo pipefail
 
 MODULES=("site" "backend/api" "infra")
 
-# Snapshot go.mod files before upgrade
+# Capture upgrade reports and apply upgrades
 for module in "${MODULES[@]}"; do
   label="${module//\//-}"
-  cp "${module}/go.mod" "/tmp/${label}-go.mod.before"
-done
-
-# Upgrade each module
-for module in "${MODULES[@]}"; do
+  echo "Checking upgrades in ${module}..."
+  (cd "$module" && go-mod-upgrade --list) > "/tmp/${label}-upgrades.txt" 2>/dev/null || true
   echo "Upgrading ${module}..."
-  (cd "$module" && go get -u -t ./... && go mod tidy)
+  (cd "$module" && go-mod-upgrade --force && go mod tidy)
 done
 
 # Sync workspace
@@ -27,7 +24,12 @@ fi
 
 echo "has_updates=true" >> "$GITHUB_OUTPUT"
 
-# Build PR body with per-module diffs
+# Strip ANSI color codes from reports (go-mod-upgrade uses color output)
+strip_ansi() {
+  sed 's/\x1b\[[0-9;]*m//g' "$1"
+}
+
+# Build PR body with per-module upgrade reports
 EOF_MARKER=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
 {
   echo "body<<$EOF_MARKER"
@@ -35,12 +37,12 @@ EOF_MARKER=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
   echo ""
   for module in "${MODULES[@]}"; do
     label="${module//\//-}"
-    MODULE_DIFF=$(diff "/tmp/${label}-go.mod.before" "${module}/go.mod" || true)
-    if [ -n "$MODULE_DIFF" ]; then
+    REPORT=$(strip_ansi "/tmp/${label}-upgrades.txt")
+    if [ -n "$REPORT" ]; then
       echo "### \`${module}\`"
       echo ""
-      echo '```diff'
-      echo "$MODULE_DIFF"
+      echo '```'
+      echo "$REPORT"
       echo '```'
       echo ""
     fi

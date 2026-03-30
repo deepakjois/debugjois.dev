@@ -23,6 +23,9 @@ jobs:
             backend/api/go.sum
             infra/go.sum
 
+      - name: Install go-mod-upgrade
+        run: go install github.com/oligot/go-mod-upgrade@latest
+
       - name: Check for upgrades and apply
         id: upgrades
         run: .github/scripts/go-dep-upgrades.sh
