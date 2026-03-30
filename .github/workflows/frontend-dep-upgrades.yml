@@ -32,7 +32,7 @@ jobs:
 
       - name: Validate frontend
         if: steps.upgrades.outputs.has_updates == 'true'
-        uses: ./.github/actions/frontend-validate
+        uses: ./.github/actions/frontend-lint-build-test
         with:
           install: 'false'
           vite-site-backend-url: ${{ secrets.VITE_SITE_BACKEND_URL }}

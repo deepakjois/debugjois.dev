@@ -1,4 +1,4 @@
-name: Validate Frontend
+name: Frontend Lint, Build, and Test
 description: Run formatting, linting, tests, and build for the frontend (checkout and Node setup must happen before calling this action)
 
 inputs:
