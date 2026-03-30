@@ -140,3 +140,6 @@ cd backend/api && go run .
 # Terminal 2
 cd frontend && npm run dev
 ```
+
+### Github Actions Convention
+- Keep workflow YAML files declarative. Do not inline multiline or complex bash in `run:` blocks — extract any non-trivial shell logic into a script under `.github/scripts/` and call it from the workflow step.
