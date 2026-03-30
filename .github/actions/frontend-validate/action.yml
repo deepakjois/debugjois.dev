@@ -1,0 +1,49 @@
+name: Validate Frontend
+description: Run formatting, linting, tests, and build for the frontend (checkout and Node setup must happen before calling this action)
+
+inputs:
+  install:
+    description: Whether to run npm ci
+    default: 'true'
+  build:
+    description: Whether to run the build step
+    default: 'true'
+  vite-site-backend-url:
+    description: VITE_SITE_BACKEND_URL for the build
+    default: ''
+  vite-google-client-id:
+    description: VITE_GOOGLE_CLIENT_ID for the build
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Install dependencies
+      if: inputs.install == 'true'
+      shell: bash
+      working-directory: frontend
+      run: npm ci
+
+    - name: Check formatting
+      shell: bash
+      working-directory: frontend
+      run: npm run fmt:check
+
+    - name: Run lint
+      shell: bash
+      working-directory: frontend
+      run: npm run lint
+
+    - name: Run tests
+      shell: bash
+      working-directory: frontend
+      run: npm test
+
+    - name: Build frontend
+      if: inputs.build == 'true'
+      shell: bash
+      working-directory: frontend
+      run: npm run build
+      env:
+        VITE_SITE_BACKEND_URL: ${{ inputs.vite-site-backend-url }}
+        VITE_GOOGLE_CLIENT_ID: ${{ inputs.vite-google-client-id }}

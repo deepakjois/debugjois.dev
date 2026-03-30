@@ -30,24 +30,13 @@ jobs:
         id: upgrades
         run: ../.github/scripts/frontend-dep-upgrades.sh
 
-      - name: Check formatting
+      - name: Validate frontend
         if: steps.upgrades.outputs.has_updates == 'true'
-        run: npm run fmt:check
-
-      - name: Run lint
-        if: steps.upgrades.outputs.has_updates == 'true'
-        run: npm run lint
-
-      - name: Run tests
-        if: steps.upgrades.outputs.has_updates == 'true'
-        run: npm test
-
-      - name: Build frontend
-        if: steps.upgrades.outputs.has_updates == 'true'
-        run: npm run build
-        env:
-          VITE_SITE_BACKEND_URL: ${{ secrets.VITE_SITE_BACKEND_URL }}
-          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+        uses: ./.github/actions/frontend-validate
+        with:
+          install: 'false'
+          vite-site-backend-url: ${{ secrets.VITE_SITE_BACKEND_URL }}
+          vite-google-client-id: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
 
       - name: Create Pull Request
         if: steps.upgrades.outputs.has_updates == 'true'
