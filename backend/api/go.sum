@@ -61,8 +61,8 @@ github.com/googleapis/gax-go/v2 v2.19.0 h1:fYQaUOiGwll0cGj7jmHT/0nPlcrZDFPrZRhTs
 github.com/googleapis/gax-go/v2 v2.19.0/go.mod h1:w2ROXVdfGEVFXzmlciUU4EdjHgWvB5h2n6x/8XSTTJA=
 github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
 github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
-github.com/matthalp/go-meridian v1.7.0 h1:W/zKBAzHnR/eU0nijbyuewedAMhlib9Q3/2e5+qG1kQ=
-github.com/matthalp/go-meridian v1.7.0/go.mod h1:yzSZgoCNBuV88y/Y846UoHgZ2BKqH+aOBqXwOV2mAA0=
+github.com/matthalp/go-meridian/v2 v2.0.0 h1:aF+t3SklZPTwKvtrmVkDEitYAwrefFYRE+ge5w8nw0U=
+github.com/matthalp/go-meridian/v2 v2.0.0/go.mod h1:x7zKXXvAMiGw6psK1FFePiaE738nzzJctXqGDmkwmOI=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=

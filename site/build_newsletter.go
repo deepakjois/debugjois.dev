@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/resend/resend-go/v2"
+	"github.com/resend/resend-go/v3"
 )
 
 type BuildNewsletterCmd struct {

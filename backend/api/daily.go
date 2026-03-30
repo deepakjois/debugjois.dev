@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/matthalp/go-meridian/cet"
+	"github.com/matthalp/go-meridian/v2/timezones/cet"
 )
 
 type dailyResponse struct {

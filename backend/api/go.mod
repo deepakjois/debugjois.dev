@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.13
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.5
 	github.com/joho/godotenv v1.5.1
-	github.com/matthalp/go-meridian v1.7.0
+	github.com/matthalp/go-meridian/v2 v2.0.0
 	golang.org/x/oauth2 v0.36.0
 	google.golang.org/api v0.273.0
 )

@@ -9,9 +9,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.97.3
 	github.com/bitfield/script v0.24.1
 	github.com/gorilla/feeds v1.2.0
-	github.com/matthalp/go-meridian v1.7.0
+	github.com/matthalp/go-meridian/v2 v2.0.0
 	github.com/otiai10/copy v1.14.1
-	github.com/resend/resend-go/v2 v2.28.0
+	github.com/resend/resend-go/v3 v3.2.0
 	github.com/samber/lo v1.53.0
 	github.com/yuin/goldmark v1.8.2
 	go.abhg.dev/goldmark/hashtag v0.4.0
