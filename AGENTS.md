@@ -29,7 +29,7 @@ frontend/                   # Vite + React SPA for /app
 
 ## Version Control
 
-This repo uses [Jujutsu (`jj`)](https://github.com/jj-vcs/jj) for version control. The `.jj/` directory is present at the root. Use `jj` commands (not `git`) for committing, branching, and history operations.
+This repo uses [Jujutsu (`jj`)](https://github.com/jj-vcs/jj) for version control. If a `.jj/` directory is present at the root, use `jj` commands for committing, branching, and history operations. Otherwise, fall back to `git`.
 
 ## Go Workspace
 
@@ -44,7 +44,7 @@ All Go modules use Go `1.26.1`.
 ### Workflow
 
 - After making changes in any Go module, run `golangci-lint run` from that module directory.
-- The repo-level `.golangci.yml` enables `gofumpt` and `staticcheck` for all Go code in `site/`, `backend/api/`, and `infra/`.
+- The repo-level `.golangci.yml` enables `gofumpt`, `staticcheck`, `govet`, and `ineffassign` for all Go code in `site/`, `backend/api/`, and `infra/`.
 - Do not add separate `go fmt` or `go vet` checks unless there is a specific reason; `golangci-lint` is the source of truth for Go formatting and linting here.
 
 ## Site
@@ -67,36 +67,11 @@ Run all site commands from `site/`.
 - `./debugjois-site build-newsletter` - preview the weekly newsletter
 - `./debugjois-site build-newsletter --post` - post newsletter draft to Buttondown
 - `./debugjois-site build-newsletter --post --notify` - post and notify via Resend
-- `golangci-lint run` - run Go linting with `gofumpt` and `staticcheck`
 - `go test ./...` - run all site tests
-
-### Environment variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `BUTTONDOWN_API_KEY` | For newsletter posting | Buttondown API key |
-| `RESEND_API_KEY` | For notification emails | Resend API key |
-| `OBSIDIAN_SHARED_DRIVE` | No (default: `obsidian`) | Name of the Google Drive shared drive |
-| `OBSIDIAN_VAULT_FOLDER` | No (default: `PersonalKnowledgeWiki`) | Vault folder name within the shared drive |
-
-### Notes
-
-- `sync-notes-obsidian` pulls daily notes from a Google Drive shared drive using Application Default Credentials (ADC); configure via `gcloud auth application-default login --impersonate-service-account=<sa-email> --scopes=https://www.googleapis.com/auth/drive`
-- `commit-notes` stages and commits changes under `content/daily-notes/`; the commit message includes a timestamp and optionally `[skip ci]`
-- templates live in `site/templates/`, static assets in `site/static/`
 
 ## Backend API
 
 The backend API lives in `backend/api/` and is written in Go.
-
-### Behavior
-
-- runs as a normal HTTP server locally
-- runs as an AWS Lambda when `AWS_LAMBDA_RUNTIME_API` is set
-- serves `/` (also used as the healthcheck endpoint), `/daily` (read/write daily notes via Google Drive), and `/linkpreview`
-- reads/writes daily notes from a Google Drive shared drive (same `obsidian` drive and folder structure as the site sync)
-- authenticates to Google Drive using Application Default Credentials (ADC); locally via `gcloud auth`, in Lambda via a bundled credential config for Workload Identity Federation
-- reads authenticated user email from API Gateway JWT context when invoked via Lambda
 
 ### Common commands
 
@@ -104,37 +79,8 @@ Run these from `backend/api/`:
 
 - `go run .` - start the local server on `http://localhost:8000`
 - `PORT=9000 go run .` - override the local port
-- `golangci-lint run` - run Go linting with `gofumpt` and `staticcheck`
 - `go test ./...` - run backend tests
 - `go build .` - build the binary
-
-### Environment variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `PORT` | No (default: `8000`) | HTTP server port for local dev |
-| `AWS_LAMBDA_RUNTIME_API` | In Lambda only | Set automatically by Lambda runtime; switches server to Lambda mode |
-
-### Google Drive authentication (local dev)
-
-The `/daily` endpoint uses ADC to access Google Drive. Configure via:
-
-```bash
-gcloud auth application-default login \
-  --impersonate-service-account=gdrive-obsidian@daily-notes-obsidian-gdrive.iam.gserviceaccount.com \
-  --scopes=https://www.googleapis.com/auth/drive
-```
-
-### Image build
-
-From the repository root:
-
-- `./backend/build-and-push-image.sh` - build and push the Lambda image, then print an immutable `IMAGE_URI`
-
-Prerequisites:
-
-- Docker Desktop must be running
-- AWS credentials must be available in the default profile
 
 ## Infrastructure
 
@@ -147,25 +93,8 @@ Run these from `infra/` unless the command already includes the path:
 - `cdk diff` - preview infrastructure changes
 - `cdk --app 'go mod download && go run infra.go --image-uri <ecr-image-uri-or-digest>' deploy --require-approval never` - deploy with an explicit image
 - `cdk synth` - synthesize the CloudFormation template
-- `golangci-lint run` - run Go linting with `gofumpt` and `staticcheck`
 - `./infra/deploy.sh` - deploy using the image currently configured on the deployed Lambda
 - `./infra/deploy.sh --build-image` - build and push a new image first, then deploy
-
-### Environment variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `AWS_ROLE_ARN` | For CI | IAM role ARN assumed by GitHub Actions via OIDC |
-
-### Notes
-
-- `infra/infra.go` falls back to the currently deployed Lambda image when no `--image-uri` argument is provided
-- `infra/deploy.sh` calls `../backend/build-and-push-image.sh` when `--build-image` is used and passes the resulting image URI directly to `infra.go`
-- the API URL is emitted as the `ApiUrl` stack output after deploy
-- `infra/cloudfront/domain-redirect-debugjois-dev.js` is the source for the production CloudFront Function that redirects the apex domain and rewrites `/app` SPA routes
-- Lambda receives `GOOGLE_APPLICATION_CREDENTIALS=/gcp-credentials.json` pointing to a GCP Workload Identity Federation credential config bundled in the Docker image; this allows the Lambda to authenticate to Google Drive via its AWS IAM role without storing GCP secrets
-- the GCP credential config is at `backend/api/gcp-credentials.json` and is safe to commit (it contains no secrets, only the WIF pool/provider reference and service account impersonation URL)
-- GCP WIF setup: AWS provider `aws-lambda-provider` in pool `github-actions-pool` (project `daily-notes-obsidian-gdrive`), with service account `gdrive-obsidian@daily-notes-obsidian-gdrive.iam.gserviceaccount.com` granting impersonation to the Lambda role
 
 ## Frontend
 
@@ -202,14 +131,6 @@ After every set of frontend edits, always run these steps in order — no except
 - TanStack Router `basepath` is `/app`
 - Copy `frontend/.env.example` to `frontend/.env` as a starting point
 
-### Environment variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `VITE_SITE_BACKEND_URL` | Yes | Backend API origin |
-| `VITE_GOOGLE_CLIENT_ID` | Yes | Google OAuth client ID |
-| `VITE_AUTH_BYPASS` | No | Set to `true` in `.env.development` to skip login in local dev |
-
 ### Local full-stack development
 
 ```bash
@@ -219,28 +140,3 @@ cd backend/api && go run .
 # Terminal 2
 cd frontend && npm run dev
 ```
-
-## GitHub Workflows
-
-Workflows live in `.github/workflows/`.
-
-### Conventions
-
-- Keep workflow YAML files declarative. Do not inline multiline or complex bash in `run:` blocks — extract any non-trivial shell logic into a script under `.github/scripts/` and call it from the workflow step.
-
-### Workflow list
-
-| Workflow | Trigger | Description |
-|---|---|---|
-| `site-sync-build-deploy.yml` | Every 15 min + manual | Sync notes from Google Drive, build and deploy static site to S3 |
-| `go-lint.yml` | Push to Go paths on main | Run `golangci-lint` with `gofumpt` and `staticcheck` for `site/`, `backend/api/`, and `infra/` |
-| `site-test-and-deploy.yml` | Push to `site/**` on main | Run site tests, build, and deploy to S3 |
-| `site-govulncheck.yml` | Push to `site/**` on main | Run `govulncheck` on site module |
-| `site-newsletter.yml` | Weekly cron (Sundays 2am UTC) | Post weekly newsletter to Buttondown |
-| `go-dep-upgrades.yml` | Weekly (Mondays) + manual | Check and create PR for Go patch/minor dependency upgrades |
-| `go-major-upgrades.yml` | Monthly (1st) + manual | Check for Go major version upgrades and create/update an issue |
-| `frontend-dep-upgrades.yml` | Scheduled | Check and create PR for frontend dependency upgrades |
-| `backend-api-test-deploy.yml` | Push to `backend/api/**` on main + manual | Run backend tests and deploy |
-| `infra-deploy.yml` | Manual | Deploy infra without rebuilding the backend image |
-| `frontend-test-deploy.yml` | Push to `frontend/**` on main | Run frontend tests and deploy to S3 |
-| `claude.yml` | Issue/PR comment with `@claude` | Claude Code bot integration |
