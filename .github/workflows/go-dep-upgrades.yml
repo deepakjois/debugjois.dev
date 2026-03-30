@@ -1,0 +1,70 @@
+name: Go Dependency Upgrades
+
+on:
+  schedule:
+    - cron: '22 10 * * 1'
+  workflow_dispatch:
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.work'
+          cache: true
+          cache-dependency-path: |
+            site/go.sum
+            backend/api/go.sum
+            infra/go.sum
+
+      - name: Check for upgrades and apply
+        id: upgrades
+        run: .github/scripts/go-dep-upgrades.sh
+
+      - name: Run golangci-lint (site)
+        if: steps.upgrades.outputs.has_updates == 'true'
+        uses: golangci/golangci-lint-action@v9.2.0
+        with:
+          version: latest
+          working-directory: site
+
+      - name: Run golangci-lint (backend/api)
+        if: steps.upgrades.outputs.has_updates == 'true'
+        uses: golangci/golangci-lint-action@v9.2.0
+        with:
+          version: latest
+          working-directory: backend/api
+
+      - name: Run golangci-lint (infra)
+        if: steps.upgrades.outputs.has_updates == 'true'
+        uses: golangci/golangci-lint-action@v9.2.0
+        with:
+          version: latest
+          working-directory: infra
+
+      - name: Run tests (site)
+        if: steps.upgrades.outputs.has_updates == 'true'
+        working-directory: site
+        run: go test ./...
+
+      - name: Run tests (backend/api)
+        if: steps.upgrades.outputs.has_updates == 'true'
+        working-directory: backend/api
+        run: go test ./...
+
+      - name: Create Pull Request
+        if: steps.upgrades.outputs.has_updates == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: deps/go-upgrades
+          title: "go: upgrade module dependencies"
+          body: ${{ steps.upgrades.outputs.body }}
+          commit-message: "go: upgrade module dependencies"
+          labels: dependencies
+          delete-branch: true
