@@ -24,9 +24,9 @@ fi
 
 echo "has_updates=true" >> "$GITHUB_OUTPUT"
 
-# Strip ANSI color codes and carriage returns from reports
-strip_ansi() {
-  sed -e 's/\x1b\[[0-9;]*m//g' -e 's/\r//g' "$1" | sed '/^$/d'
+# Clean terminal control characters from reports
+clean_output() {
+  sed -e 's/\x1b\[[0-9;]*m//g' -e 's/.*\r//' "$1" | sed '/^[[:space:]]*$/d'
 }
 
 # Build PR body with per-module upgrade reports
@@ -37,7 +37,7 @@ EOF_MARKER=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
   echo ""
   for module in "${MODULES[@]}"; do
     label="${module//\//-}"
-    REPORT=$(strip_ansi "/tmp/${label}-upgrades.txt" | grep -v 'All modules are up to date')
+    REPORT=$(clean_output "/tmp/${label}-upgrades.txt" | grep -v 'All modules are up to date')
     if [ -n "$REPORT" ]; then
       echo "### \`${module}\`"
       echo ""
