@@ -1,0 +1,45 @@
+name: Go Major Version Upgrades
+
+on:
+  schedule:
+    - cron: '30 10 1 * *'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.work'
+          cache: true
+          cache-dependency-path: |
+            site/go.sum
+            backend/api/go.sum
+            infra/go.sum
+
+      - name: Install gomajor
+        run: go install github.com/icholy/gomajor@latest
+
+      - name: Check for major version upgrades
+        id: upgrades
+        run: .github/scripts/go-major-upgrades.sh
+
+      - name: Create or update issue
+        if: steps.upgrades.outputs.has_upgrades == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          title="go: major version upgrades available"
+          existing=$(gh issue list --state open --search "in:title $title" --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue edit "$existing" --body "${{ steps.upgrades.outputs.body }}"
+            echo "Updated issue #$existing"
+          else
+            gh issue create --title "$title" --body "${{ steps.upgrades.outputs.body }}" --label dependencies
+            echo "Created new issue"
+          fi
