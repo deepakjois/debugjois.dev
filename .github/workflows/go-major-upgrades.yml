@@ -33,13 +33,5 @@ jobs:
         if: steps.upgrades.outputs.has_upgrades == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          title="go: major version upgrades available"
-          existing=$(gh issue list --state open --search "in:title $title" --json number --jq '.[0].number // empty')
-          if [ -n "$existing" ]; then
-            gh issue edit "$existing" --body "${{ steps.upgrades.outputs.body }}"
-            echo "Updated issue #$existing"
-          else
-            gh issue create --title "$title" --body "${{ steps.upgrades.outputs.body }}" --label dependencies
-            echo "Created new issue"
-          fi
+          UPGRADE_BODY: ${{ steps.upgrades.outputs.body }}
+        run: .github/scripts/go-major-upgrades-issue.sh

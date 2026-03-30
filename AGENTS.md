@@ -222,7 +222,13 @@ cd frontend && npm run dev
 
 ## GitHub Workflows
 
-Workflows live in `.github/workflows/`:
+Workflows live in `.github/workflows/`.
+
+### Conventions
+
+- Keep workflow YAML files declarative. Do not inline multiline or complex bash in `run:` blocks — extract any non-trivial shell logic into a script under `.github/scripts/` and call it from the workflow step.
+
+### Workflow list
 
 | Workflow | Trigger | Description |
 |---|---|---|
@@ -230,8 +236,10 @@ Workflows live in `.github/workflows/`:
 | `go-lint.yml` | Push to Go paths on main | Run `golangci-lint` with `gofumpt` and `staticcheck` for `site/`, `backend/api/`, and `infra/` |
 | `site-test-and-deploy.yml` | Push to `site/**` on main | Run site tests, build, and deploy to S3 |
 | `site-govulncheck.yml` | Push to `site/**` on main | Run `govulncheck` on site module |
-| `site-latest-deps.yml` | Scheduled | Update site Go dependencies |
 | `site-newsletter.yml` | Weekly cron (Sundays 2am UTC) | Post weekly newsletter to Buttondown |
+| `go-dep-upgrades.yml` | Weekly (Mondays) + manual | Check and create PR for Go patch/minor dependency upgrades |
+| `go-major-upgrades.yml` | Monthly (1st) + manual | Check for Go major version upgrades and create/update an issue |
+| `frontend-dep-upgrades.yml` | Scheduled | Check and create PR for frontend dependency upgrades |
 | `backend-api-test-deploy.yml` | Push to `backend/api/**` on main + manual | Run backend tests and deploy |
 | `infra-deploy.yml` | Manual | Deploy infra without rebuilding the backend image |
 | `frontend-test-deploy.yml` | Push to `frontend/**` on main | Run frontend tests and deploy to S3 |
