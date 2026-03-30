@@ -6,8 +6,8 @@ require (
 	github.com/aws/aws-cdk-go/awscdk/v2 v2.245.0
 	github.com/aws/aws-sdk-go-v2 v1.41.5
 	github.com/aws/aws-sdk-go-v2/config v1.32.13
-	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.71.7
-	github.com/aws/aws-sdk-go-v2/service/lambda v1.88.2
+	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.71.9
+	github.com/aws/aws-sdk-go-v2/service/lambda v1.88.5
 	github.com/aws/constructs-go/constructs/v10 v10.6.0
 	github.com/aws/jsii-runtime-go v1.127.0
 )
