@@ -19,6 +19,14 @@ workspace in `go.work`. All Go modules use Go `1.26.1`.
 
 - Site: `cd site && go build -o debugjois-site . && ./debugjois-site build`
 - Backend API: `cd backend/api && go test ./... && go run .`
+- Backend invoke: `cd backend/api && printf '{"action":"health-check"}' | go run . invoke`
 - Frontend: `cd frontend && npm install && npm run dev`
 - Infra deploy: `./infra/deploy.sh`
 - Infra deploy with fresh image: `./infra/deploy.sh --build-image`
+
+## Backend local usage
+
+- Start the local API server: `cd backend/api && go run . serve`
+- Invoke the shared event handler with JSON from stdin: `cd backend/api && printf '{"action":"health-check"}' | go run . invoke`
+- Invoke with a payload file: `cd backend/api && go run . invoke --payload event.json`
+- `invoke` rejects API Gateway request events locally; use `serve` and send the request over HTTP instead

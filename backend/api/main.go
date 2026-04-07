@@ -1,7 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -18,34 +24,53 @@ const (
 
 func main() {
 	ctx := context.Background()
-	isLambda := isLambdaRuntime()
+	lambdaRuntime := isLambdaRuntime()
 
-	if isLambda {
-		if err := loadLambdaSecrets(ctx); err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		if err := loadLocalEnvFile(); err != nil {
-			log.Fatal(err)
-		}
+	if !lambdaRuntime && len(os.Args) < 2 {
+		printUsage(os.Stderr)
+		os.Exit(1)
 	}
 
-	app := NewAppHandler(
-		loadDailyNoteContentFromDrive,
-		saveDailyNoteContentToDrive,
-		todayStringInCET,
-		currentTimestampInCET,
-		os.Getenv(linkPreviewAPIKeyEnvVar),
-		linkPreviewBaseURL,
-	)
+	var err error
+	if lambdaRuntime {
+		err = loadLambdaSecrets(ctx)
+	} else {
+		err = loadLocalEnvFile()
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	if isLambda {
-		lambda.Start(newLambdaHandler(app))
+	httpHandler := buildAppHandler()
+
+	if lambdaRuntime {
+		lambda.Start(newLambdaBackendHandler(httpHandler).HandleLambdaEvent)
 		return
 	}
 
-	// Local dev serves the API directly, so add CORS here.
-	app = withLocalCORS(app)
+	switch os.Args[1] {
+	case "serve":
+		runServe(httpHandler)
+	case "invoke":
+		if err := runInvoke(ctx, os.Args[2:], newLocalBackendHandler(), os.Stdin, os.Stdout); err != nil {
+			log.Fatal(err)
+		}
+	default:
+		printUsage(os.Stderr)
+		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", os.Args[1])
+		os.Exit(1)
+	}
+}
+
+func printUsage(w io.Writer) {
+	fmt.Fprintf(w, "Usage: %s <command> [args]\n\n", os.Args[0])
+	fmt.Fprintf(w, "Commands:\n")
+	fmt.Fprintf(w, "  serve    Start the local HTTP server\n")
+	fmt.Fprintf(w, "  invoke   Process a JSON payload (from stdin or --payload file)\n")
+}
+
+func runServe(httpHandler http.Handler) {
+	handler := withLocalCORS(httpHandler)
 
 	port := strings.TrimSpace(os.Getenv("PORT"))
 	if port == "" {
@@ -54,7 +79,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:              ":" + port,
-		Handler:           app,
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -62,13 +87,74 @@ func main() {
 	log.Fatal(server.ListenAndServe())
 }
 
+func runInvoke(ctx context.Context, args []string, handler BackendHandler, stdin io.Reader, stdout io.Writer) error {
+	invokeFlags := flag.NewFlagSet("invoke", flag.ContinueOnError)
+	invokeFlags.SetOutput(io.Discard)
+	payloadFile := invokeFlags.String("payload", "", "Path to JSON payload file (reads from stdin if not set)")
+	if err := invokeFlags.Parse(args); err != nil {
+		return fmt.Errorf("parse invoke flags: %w", err)
+	}
+	if invokeFlags.NArg() != 0 {
+		return fmt.Errorf("invoke does not accept positional arguments")
+	}
+
+	payload, err := readInvokePayload(*payloadFile, stdin)
+	if err != nil {
+		return err
+	}
+
+	result, err := handler.HandleLambdaEvent(ctx, payload)
+	if err != nil {
+		return err
+	}
+	if result == nil {
+		return nil
+	}
+
+	if _, err := fmt.Fprintln(stdout, string(result)); err != nil {
+		return fmt.Errorf("write invoke response: %w", err)
+	}
+
+	return nil
+}
+
+func readInvokePayload(payloadFile string, stdin io.Reader) (json.RawMessage, error) {
+	var (
+		payload []byte
+		err     error
+	)
+
+	if strings.TrimSpace(payloadFile) != "" {
+		payload, err = os.ReadFile(payloadFile)
+	} else {
+		payload, err = io.ReadAll(stdin)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read invoke payload: %w", err)
+	}
+
+	payload = bytes.TrimSpace(payload)
+	if len(payload) == 0 {
+		return nil, errors.New("invoke payload is empty")
+	}
+
+	return json.RawMessage(payload), nil
+}
+
 func isLambdaRuntime() bool {
 	return strings.TrimSpace(os.Getenv("AWS_LAMBDA_RUNTIME_API")) != ""
 }
 
 func withLocalCORS(next http.Handler) http.Handler {
+	headers := corsHeaders()
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		applyCORSHeaders(w.Header())
+		// Mirror the Lambda response headers on the local server so browser-based development behaves the same way.
+		for key, value := range headers {
+			w.Header().Set(key, value)
+		}
+
+		// Preflight requests do not need to reach the app handler.
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -76,19 +162,4 @@ func withLocalCORS(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
-}
-
-func corsHeaders() map[string]string {
-	return map[string]string{
-		"Access-Control-Allow-Origin":  "*",
-		"Access-Control-Allow-Headers": "Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token",
-		"Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS",
-		"Content-Type":                 "application/json",
-	}
-}
-
-func applyCORSHeaders(headers http.Header) {
-	for key, value := range corsHeaders() {
-		headers.Set(key, value)
-	}
 }

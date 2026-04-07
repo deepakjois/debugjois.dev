@@ -29,7 +29,7 @@ frontend/                   # Vite + React SPA for /app
 
 ## Version Control
 
-This repo uses [Jujutsu (`jj`)](https://github.com/jj-vcs/jj) for version control. If a `.jj/` directory is present at the root, use `jj` commands for committing, branching, and history operations. Otherwise, fall back to `git`.
+This repo is hosted in Github, but locally uses [Jujutsu (`jj`)](https://github.com/jj-vcs/jj) for version control. If a `.jj/` directory is present at the root, use `jj` commands for committing, branching, and history operations. Otherwise, fall back to `git`. If it is jj repo, it is most likely a workspace, in which case the colocated git repo is in the default workspace.
 
 ## Go Workspace
 
@@ -39,7 +39,10 @@ The repo uses a top-level `go.work` file that includes:
 - `./backend/api`
 - `./infra`
 
-All Go modules use Go `1.26.1`.
+Use the latest Go version available.
+
+### Source Code Conventions
+Use the code conventions of the Go standard library source code. As far as possible and unless specified otherwise minimize third party dependencies.
 
 ### Workflow
 
@@ -79,6 +82,7 @@ Run these from `backend/api/`:
 
 - `go run .` - start the local server on `http://localhost:8000`
 - `PORT=9000 go run .` - override the local port
+- `printf '{"action":"health-check"}' | go run . invoke` - invoke the shared backend event handler with event JSON from stdin
 - `go test ./...` - run backend tests
 - `go build .` - build the binary
 

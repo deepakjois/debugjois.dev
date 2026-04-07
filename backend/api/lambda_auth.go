@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 
@@ -19,11 +20,13 @@ func authorizeLambdaEvent(event events.APIGatewayV2HTTPRequest) *events.APIGatew
 
 	email := getEmailFromLambdaEvent(event)
 	if email == nil {
+		log.Printf("Unauthorized request: no email in JWT claims method=%s path=%s", event.RequestContext.HTTP.Method, event.RequestContext.HTTP.Path)
 		response := newLambdaJSONResponse(http.StatusUnauthorized, errorResponse{Error: "unauthorized"})
 		return &response
 	}
 
 	if !isAllowedEmail(*email) {
+		log.Printf("Forbidden request: email=%s method=%s path=%s", *email, event.RequestContext.HTTP.Method, event.RequestContext.HTTP.Path)
 		response := newLambdaJSONResponse(http.StatusForbidden, errorResponse{Error: "forbidden"})
 		return &response
 	}

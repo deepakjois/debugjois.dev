@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,10 +14,45 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-func newLambdaHandler(app http.Handler) func(context.Context, events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
-	return func(ctx context.Context, event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
-		return handleLambdaInvocation(ctx, event, app)
+func dispatchBackendEvent(ctx context.Context, payload json.RawMessage, httpHandler http.Handler) (json.RawMessage, error) {
+	switch classifyEvent(payload) {
+	case eventTypeAPIGateway:
+		return handleAPIGatewayEvent(ctx, payload, httpHandler)
+	case eventTypeScheduled:
+		var event events.EventBridgeEvent
+		if err := json.Unmarshal(payload, &event); err != nil {
+			return nil, fmt.Errorf("unmarshal EventBridge event: %w", err)
+		}
+		return handleScheduledLambdaEvent(event)
+	default:
+		return handleDirectLambdaEvent(payload)
 	}
+}
+
+func handleAPIGatewayEvent(ctx context.Context, payload json.RawMessage, httpHandler http.Handler) (json.RawMessage, error) {
+	var event events.APIGatewayV2HTTPRequest
+	if err := json.Unmarshal(payload, &event); err != nil {
+		return nil, fmt.Errorf("unmarshal API Gateway event: %w", err)
+	}
+
+	response, err := handleLambdaInvocation(ctx, event, httpHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	return json.Marshal(response)
+}
+
+func handleScheduledLambdaEvent(event events.EventBridgeEvent) (json.RawMessage, error) {
+	log.Printf("Received scheduled event: source=%s detail-type=%s id=%s", event.Source, event.DetailType, event.ID)
+
+	return json.Marshal(map[string]bool{"ok": true})
+}
+
+func handleDirectLambdaEvent(payload json.RawMessage) (json.RawMessage, error) {
+	log.Printf("Received direct invocation: %s", string(payload))
+
+	return json.Marshal(map[string]bool{"ok": true})
 }
 
 func handleLambdaInvocation(ctx context.Context, event events.APIGatewayV2HTTPRequest, app http.Handler) (events.APIGatewayV2HTTPResponse, error) {

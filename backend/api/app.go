@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -44,6 +45,21 @@ func NewAppHandler(
 		linkPreviewAPIKey:  linkPreviewAPIKey,
 		linkPreviewBaseURL: linkPreviewBaseURL,
 	}
+	return newHTTPHandler(a)
+}
+
+func buildAppHandler() http.Handler {
+	return NewAppHandler(
+		loadDailyNoteContentFromDrive,
+		saveDailyNoteContentToDrive,
+		todayStringInCET,
+		currentTimestampInCET,
+		os.Getenv(linkPreviewAPIKeyEnvVar),
+		linkPreviewBaseURL,
+	)
+}
+
+func newHTTPHandler(a *app) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", handleRootGet)
 	mux.HandleFunc("GET /daily", a.handleDailyGet)

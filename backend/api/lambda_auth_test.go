@@ -9,6 +9,17 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
+func requireLambdaResponse(t *testing.T, response *events.APIGatewayV2HTTPResponse, message string) events.APIGatewayV2HTTPResponse {
+	t.Helper()
+
+	if response != nil {
+		return *response
+	}
+
+	t.Fatal(message)
+	return events.APIGatewayV2HTTPResponse{}
+}
+
 func TestAuthorizeLambdaEventMissingEmail(t *testing.T) {
 	response := authorizeLambdaEvent(events.APIGatewayV2HTTPRequest{
 		RequestContext: events.APIGatewayV2HTTPRequestContext{
@@ -17,16 +28,14 @@ func TestAuthorizeLambdaEventMissingEmail(t *testing.T) {
 			},
 		},
 	})
-	if response == nil {
-		t.Fatal("expected unauthorized response, got nil")
-	}
+	gotResponse := requireLambdaResponse(t, response, "expected unauthorized response, got nil")
 
-	if response.StatusCode != http.StatusUnauthorized {
-		t.Fatalf("expected status %d, got %d", http.StatusUnauthorized, response.StatusCode)
+	if gotResponse.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("expected status %d, got %d", http.StatusUnauthorized, gotResponse.StatusCode)
 	}
 
 	var body errorResponse
-	if err := json.Unmarshal([]byte(response.Body), &body); err != nil {
+	if err := json.Unmarshal([]byte(gotResponse.Body), &body); err != nil {
 		t.Fatalf("unmarshal response: %v", err)
 	}
 
@@ -48,16 +57,14 @@ func TestAuthorizeLambdaEventDisallowedEmail(t *testing.T) {
 			},
 		},
 	})
-	if response == nil {
-		t.Fatal("expected forbidden response, got nil")
-	}
+	gotResponse := requireLambdaResponse(t, response, "expected forbidden response, got nil")
 
-	if response.StatusCode != http.StatusForbidden {
-		t.Fatalf("expected status %d, got %d", http.StatusForbidden, response.StatusCode)
+	if gotResponse.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected status %d, got %d", http.StatusForbidden, gotResponse.StatusCode)
 	}
 
 	var body errorResponse
-	if err := json.Unmarshal([]byte(response.Body), &body); err != nil {
+	if err := json.Unmarshal([]byte(gotResponse.Body), &body); err != nil {
 		t.Fatalf("unmarshal response: %v", err)
 	}
 
