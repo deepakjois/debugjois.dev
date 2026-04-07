@@ -34,6 +34,7 @@ site/debugjois-site
 backend/api/api
 backend/api/bootstrap
 backend/api/coverage.out
+backend/api/cmd/transcribe/transcribe
 
 # Bleve index directory
 site/debugjois-dev.bleve/

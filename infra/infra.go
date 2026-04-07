@@ -31,6 +31,7 @@ type InfraStackProps struct {
 const (
 	stackName                   = "InfraStack"
 	linkPreviewAPIKeySecretName = "debugjois-dev/linkpreview-api-key"
+	deepgramAPIKeySecretName    = "debugjois-dev/deepgram-api-key"
 )
 
 func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps) awscdk.Stack {
@@ -59,10 +60,22 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 	})
 	linkPreviewAPIKeySecret.ApplyRemovalPolicy(awscdk.RemovalPolicy_DESTROY, nil)
 
+	deepgramAPIKeySecret := awssecretsmanager.NewCfnSecret(stack, jsii.String("DeepgramAPIKeySecret"), &awssecretsmanager.CfnSecretProps{
+		Name:        jsii.String(deepgramAPIKeySecretName),
+		Description: jsii.String("Deepgram API key for the debugjois.dev backend"),
+	})
+	deepgramAPIKeySecret.ApplyRemovalPolicy(awscdk.RemovalPolicy_DESTROY, nil)
+
 	linkPreviewAPIKeySecretRef := awssecretsmanager.Secret_FromSecretCompleteArn(
 		stack,
 		jsii.String("LinkPreviewAPIKeySecretRef"),
 		linkPreviewAPIKeySecret.AttrId(),
+	)
+
+	deepgramAPIKeySecretRef := awssecretsmanager.Secret_FromSecretCompleteArn(
+		stack,
+		jsii.String("DeepgramAPIKeySecretRef"),
+		deepgramAPIKeySecret.AttrId(),
 	)
 
 	imageRepoName, imageTagOrDigest, err := resolveImageReference(context.Background(), imageURI)
@@ -105,10 +118,12 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 		Description:  jsii.String("debugjois.dev Lambda function"),
 		Environment: &map[string]*string{
 			"LINKPREVIEW_API_KEY_SECRET_ARN": linkPreviewAPIKeySecret.AttrId(),
+			"DEEPGRAM_API_KEY_SECRET_ARN":    deepgramAPIKeySecret.AttrId(),
 			"GOOGLE_APPLICATION_CREDENTIALS": jsii.String("/gcp-credentials.json"),
 		},
 	})
 	linkPreviewAPIKeySecretRef.GrantRead(fn, nil)
+	deepgramAPIKeySecretRef.GrantRead(fn, nil)
 
 	// Create HTTP API Gateway with Lambda proxy integration
 	lambdaIntegration := awsapigatewayv2integrations.NewHttpLambdaIntegration(
@@ -190,6 +205,14 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 	awscdk.NewCfnOutput(stack, jsii.String("LinkPreviewAPIKeySecretName"), &awscdk.CfnOutputProps{
 		Value:       jsii.String(linkPreviewAPIKeySecretName),
 		Description: jsii.String("Secrets Manager name for the LinkPreview API key"),
+	})
+	awscdk.NewCfnOutput(stack, jsii.String("DeepgramAPIKeySecretArn"), &awscdk.CfnOutputProps{
+		Value:       deepgramAPIKeySecret.AttrId(),
+		Description: jsii.String("Secrets Manager ARN for the Deepgram API key"),
+	})
+	awscdk.NewCfnOutput(stack, jsii.String("DeepgramAPIKeySecretName"), &awscdk.CfnOutputProps{
+		Value:       jsii.String(deepgramAPIKeySecretName),
+		Description: jsii.String("Secrets Manager name for the Deepgram API key"),
 	})
 	awscdk.NewCfnOutput(stack, jsii.String("GitHubActionsRoleArn"), &awscdk.CfnOutputProps{
 		Value:       githubActionsRole.RoleArn(),

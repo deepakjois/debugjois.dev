@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/deepakjois/debugjois.dev/backend/api/internal/podcastaddict"
 )
 
 type errorResponse struct {
@@ -21,12 +23,14 @@ type rootResponse struct {
 }
 
 type app struct {
-	loadDailyNote      func(ctx context.Context, date string) (string, error)
-	saveDailyNote      func(ctx context.Context, title, contents, commitMessage string) error
-	currentDailyDate   func() string
-	currentTimestamp   func() string
-	linkPreviewAPIKey  string
-	linkPreviewBaseURL string
+	loadDailyNote             func(ctx context.Context, date string) (string, error)
+	saveDailyNote             func(ctx context.Context, title, contents, commitMessage string) error
+	currentDailyDate          func() string
+	currentTimestamp          func() string
+	linkPreviewAPIKey         string
+	linkPreviewBaseURL        string
+	parsePodcastTranscribe    func(ctx context.Context, text string) (podcastaddict.Result, error)
+	dispatchPodcastTranscribe func(ctx context.Context, podcast podcastaddict.Result) (string, error)
 }
 
 func NewAppHandler(
@@ -64,6 +68,7 @@ func newHTTPHandler(a *app) http.Handler {
 	mux.HandleFunc("GET /{$}", handleRootGet)
 	mux.HandleFunc("GET /daily", a.handleDailyGet)
 	mux.HandleFunc("POST /daily", a.handleDailyPost)
+	mux.HandleFunc("POST /podcast-transcribe", a.handlePodcastTranscribePost)
 	mux.HandleFunc("GET /linkpreview", newLinkPreviewHandler(a.linkPreviewAPIKey, a.linkPreviewBaseURL))
 	return mux
 }

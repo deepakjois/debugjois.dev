@@ -15,6 +15,8 @@ import (
 const (
 	linkPreviewAPIKeyEnvVar          = "LINKPREVIEW_API_KEY"
 	linkPreviewAPIKeySecretARNEnvVar = "LINKPREVIEW_API_KEY_SECRET_ARN"
+	deepgramAPIKeyEnvVar             = "DEEPGRAM_API_KEY"
+	deepgramAPIKeySecretARNEnvVar    = "DEEPGRAM_API_KEY_SECRET_ARN"
 	linkPreviewBaseURL               = "https://api.linkpreview.net"
 	defaultLocalDotEnvPath           = ".env"
 )
@@ -26,6 +28,9 @@ func loadLocalEnvFile() error {
 
 	if strings.TrimSpace(os.Getenv(linkPreviewAPIKeyEnvVar)) == "" {
 		return fmt.Errorf("%s must be set in %s for local development", linkPreviewAPIKeyEnvVar, defaultLocalDotEnvPath)
+	}
+	if strings.TrimSpace(os.Getenv(deepgramAPIKeyEnvVar)) == "" {
+		return fmt.Errorf("%s must be set in %s for local development", deepgramAPIKeyEnvVar, defaultLocalDotEnvPath)
 	}
 
 	return nil
@@ -71,6 +76,28 @@ func loadLambdaLinkPreviewAPIKey(ctx context.Context) error {
 	return nil
 }
 
+func loadLambdaDeepgramAPIKey(ctx context.Context) error {
+	secretARN := strings.TrimSpace(os.Getenv(deepgramAPIKeySecretARNEnvVar))
+	if secretARN == "" {
+		return fmt.Errorf("%s must be set in Lambda", deepgramAPIKeySecretARNEnvVar)
+	}
+
+	apiKey, err := fetchSecretValue(ctx, secretARN)
+	if err != nil {
+		return fmt.Errorf("load Deepgram API key: %w", err)
+	}
+
+	if err := os.Setenv(deepgramAPIKeyEnvVar, apiKey); err != nil {
+		return fmt.Errorf("set %s: %w", deepgramAPIKeyEnvVar, err)
+	}
+
+	return nil
+}
+
 func loadLambdaSecrets(ctx context.Context) error {
-	return loadLambdaLinkPreviewAPIKey(ctx)
+	if err := loadLambdaLinkPreviewAPIKey(ctx); err != nil {
+		return err
+	}
+
+	return loadLambdaDeepgramAPIKey(ctx)
 }

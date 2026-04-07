@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/deepakjois/debugjois.dev/backend/api/internal/transcribe"
 )
 
 func dispatchBackendEvent(ctx context.Context, payload json.RawMessage, httpHandler http.Handler) (json.RawMessage, error) {
@@ -25,7 +27,7 @@ func dispatchBackendEvent(ctx context.Context, payload json.RawMessage, httpHand
 		}
 		return handleScheduledLambdaEvent(event)
 	default:
-		return handleDirectLambdaEvent(payload)
+		return handleDirectLambdaEvent(ctx, payload)
 	}
 }
 
@@ -49,10 +51,33 @@ func handleScheduledLambdaEvent(event events.EventBridgeEvent) (json.RawMessage,
 	return json.Marshal(map[string]bool{"ok": true})
 }
 
-func handleDirectLambdaEvent(payload json.RawMessage) (json.RawMessage, error) {
+var transcribePodcastFunc = func(ctx context.Context, podcastPayload transcribe.DirectRequest) (transcribe.Result, error) {
+	return transcribe.TranscribePodcast(ctx, podcastPayload.Podcast, nil)
+}
+
+func handleDirectLambdaEvent(ctx context.Context, payload json.RawMessage) (json.RawMessage, error) {
 	log.Printf("Received direct invocation: %s", string(payload))
 
-	return json.Marshal(map[string]bool{"ok": true})
+	var directRequest transcribe.DirectRequest
+	if err := json.Unmarshal(payload, &directRequest); err != nil {
+		return nil, fmt.Errorf("unmarshal direct invocation payload: %w", err)
+	}
+
+	switch strings.TrimSpace(directRequest.Action) {
+	case "", "health-check":
+		return json.Marshal(map[string]bool{"ok": true})
+	case "transcribe":
+		result, err := transcribePodcastFunc(ctx, directRequest)
+		if err != nil {
+			return nil, err
+		}
+		return json.Marshal(result)
+	default:
+		return nil, &transcribe.Error{
+			Kind: transcribe.ErrorKindInvalidInput,
+			Err:  errors.New("unknown direct invocation action"),
+		}
+	}
 }
 
 func handleLambdaInvocation(ctx context.Context, event events.APIGatewayV2HTTPRequest, app http.Handler) (events.APIGatewayV2HTTPResponse, error) {
