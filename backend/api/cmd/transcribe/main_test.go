@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 
 func TestRunPrintsJSONToStdout(t *testing.T) {
 	originalTranscribe := transcribePodcastFunc
+	originalPersist := persistTranscriptStoreFunc
 	transcribePodcastFunc = func(_ context.Context, podcast podcastaddict.Result, _ transcribe.AudioTranscriber) (transcribe.Result, error) {
 		return transcribe.Result{
 			Podcast:  podcast,
@@ -23,7 +25,12 @@ func TestRunPrintsJSONToStdout(t *testing.T) {
 	}
 	defer func() {
 		transcribePodcastFunc = originalTranscribe
+		persistTranscriptStoreFunc = originalPersist
 	}()
+	persistTranscriptStoreFunc = func(context.Context, string, string, podcastaddict.Result, []byte) error {
+		t.Fatal("expected run without --store to skip persistence")
+		return nil
+	}
 
 	var gotUserAgent string
 	client := testHTTPClient(func(reqURL string, headers map[string]string) (int, string) {
@@ -75,5 +82,62 @@ func TestRunRejectsExtraArguments(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "at most one positional argument") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRunStoresTranscriptWhenFlagProvided(t *testing.T) {
+	originalTranscribe := transcribePodcastFunc
+	originalPersist := persistTranscriptStoreFunc
+	defer func() {
+		transcribePodcastFunc = originalTranscribe
+		persistTranscriptStoreFunc = originalPersist
+	}()
+
+	transcribePodcastFunc = func(_ context.Context, podcast podcastaddict.Result, _ transcribe.AudioTranscriber) (transcribe.Result, error) {
+		return transcribe.Result{
+			Podcast:  podcast,
+			Deepgram: json.RawMessage(`{"metadata":{"request_id":"dg-store"}}`),
+		}, nil
+	}
+
+	var gotBucketARN string
+	var gotAction string
+	var gotPodcast podcastaddict.Result
+	var gotBody []byte
+	persistTranscriptStoreFunc = func(_ context.Context, bucketARN, action string, podcast podcastaddict.Result, body []byte) error {
+		gotBucketARN = bucketARN
+		gotAction = action
+		gotPodcast = podcast
+		gotBody = append([]byte(nil), body...)
+		return nil
+	}
+
+	client := testHTTPClient(func(reqURL string, headers map[string]string) (int, string) {
+		return http.StatusOK, readFixture(t, "better-offline.html")
+	})
+
+	stdin := strings.NewReader("[Better Offline] The Reality of AI Economics With Paul Kedrosky\nhttps://podcastaddict.com/better-offline/episode/221030037 via @PodcastAddict\n")
+	var stdout bytes.Buffer
+	t.Setenv(transcriptBucketARNEnvVar, "")
+
+	err := run(context.Background(), []string{"--store", "arn:aws:s3:::debugjois-dev-site"}, stdin, &stdout, client)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+
+	if gotBucketARN != "arn:aws:s3:::debugjois-dev-site" {
+		t.Fatalf("unexpected bucket ARN %q", gotBucketARN)
+	}
+	if gotAction != "transcribe" {
+		t.Fatalf("unexpected action %q", gotAction)
+	}
+	if gotPodcast.Podcast.Title != "Better Offline" {
+		t.Fatalf("unexpected podcast %#v", gotPodcast)
+	}
+	if string(gotBody) == "" {
+		t.Fatal("expected stored transcript body")
+	}
+	if got := os.Getenv(transcriptBucketARNEnvVar); got != "arn:aws:s3:::debugjois-dev-site" {
+		t.Fatalf("expected %s to be set, got %q", transcriptBucketARNEnvVar, got)
 	}
 }

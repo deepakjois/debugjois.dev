@@ -10,9 +10,11 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/deepakjois/debugjois.dev/backend/api/internal/podcastaddict"
 	"github.com/deepakjois/debugjois.dev/backend/api/internal/transcribe"
 )
 
@@ -55,6 +57,8 @@ var transcribePodcastFunc = func(ctx context.Context, podcastPayload transcribe.
 	return transcribe.TranscribePodcast(ctx, podcastPayload.Podcast, nil)
 }
 
+var persistTranscriptResultFunc = podcastaddict.PersistTranscript
+
 func handleDirectLambdaEvent(ctx context.Context, payload json.RawMessage) (json.RawMessage, error) {
 	log.Printf("Received direct invocation: %s", string(payload))
 
@@ -71,7 +75,20 @@ func handleDirectLambdaEvent(ctx context.Context, payload json.RawMessage) (json
 		if err != nil {
 			return nil, err
 		}
-		return json.Marshal(result)
+		body, err := json.Marshal(result)
+		if err != nil {
+			return nil, fmt.Errorf("marshal transcript result: %w", err)
+		}
+		if isLambdaRuntime() {
+			bucketARN := strings.TrimSpace(os.Getenv(transcriptBucketARNEnvVar))
+			if bucketARN == "" {
+				return nil, fmt.Errorf("%s must be set in Lambda", transcriptBucketARNEnvVar)
+			}
+			if err := persistTranscriptResultFunc(ctx, bucketARN, directRequest.Action, directRequest.Podcast, body); err != nil {
+				return nil, err
+			}
+		}
+		return body, nil
 	default:
 		return nil, &transcribe.Error{
 			Kind: transcribe.ErrorKindInvalidInput,

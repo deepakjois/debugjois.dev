@@ -13,6 +13,7 @@ Go backend API for `debugjois.dev`.
 - `GET /daily` - load today's daily note from Google Drive
 - `POST /daily` - save today's daily note to Google Drive
 - `GET /linkpreview` - proxy to LinkPreview API
+- `POST /podcast-transcribe` - parse Podcast Addict input and trigger podcast transcription
 
 ## Requirements
 
@@ -27,6 +28,7 @@ Run from `backend/api/`:
 ```bash
 cat > .env <<'EOF'
 LINKPREVIEW_API_KEY=your-linkpreview-api-key
+DEEPGRAM_API_KEY=your-deepgram-api-key
 EOF
 
 # Configure Google Drive access (one-time)
@@ -39,8 +41,9 @@ go run .
 
 The server listens on `http://localhost:8000` by default.
 
-Local startup loads environment variables from `.env` and requires `LINKPREVIEW_API_KEY`
-to be present there. Google Drive access uses Application Default Credentials (ADC).
+Local startup loads environment variables from `.env` and requires both
+`LINKPREVIEW_API_KEY` and `DEEPGRAM_API_KEY` to be present there. Google Drive
+access uses Application Default Credentials (ADC).
 
 To override the port:
 
@@ -59,6 +62,29 @@ go test ./...
 ```bash
 go build .
 ```
+
+## Standalone transcription CLI
+
+Run from `backend/api/`:
+
+```bash
+go run ./cmd/transcribe "<podcast-addict-share-text-or-url>"
+```
+
+The CLI reads `DEEPGRAM_API_KEY` from `backend/api/.env`, parses the Podcast
+Addict episode metadata, sends the episode audio URL to Deepgram, and prints the
+transcript JSON to stdout.
+
+To also store the transcript JSON in S3, pass a bucket ARN with `--store`:
+
+```bash
+go run ./cmd/transcribe --store arn:aws:s3:::debugjois-dev-site \
+  "<podcast-addict-share-text-or-url>"
+```
+
+When `--store` is set, the CLI also exports `TRANSCRIPT_BUCKET_ARN` for the
+process and writes the same transcript JSON to `transcripts/<stable-name>.json`
+in the specified bucket.
 
 ## Docker image
 

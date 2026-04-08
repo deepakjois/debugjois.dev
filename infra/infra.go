@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsecr"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awss3"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssecretsmanager"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -32,6 +33,7 @@ const (
 	stackName                   = "InfraStack"
 	linkPreviewAPIKeySecretName = "debugjois-dev/linkpreview-api-key"
 	deepgramAPIKeySecretName    = "debugjois-dev/deepgram-api-key"
+	siteBucketARN               = "arn:aws:s3:::debugjois-dev-site"
 )
 
 func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps) awscdk.Stack {
@@ -84,6 +86,7 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 	}
 
 	imageRepo := awsecr.Repository_FromRepositoryName(stack, jsii.String("LambdaImageRepo"), jsii.String(imageRepoName))
+	siteBucket := awss3.Bucket_FromBucketArn(stack, jsii.String("DebugJoisDevSiteBucket"), jsii.String(siteBucketARN))
 
 	githubOidcProvider := awsiam.NewOpenIdConnectProvider(stack, jsii.String("GitHubOidcProvider"), &awsiam.OpenIdConnectProviderProps{
 		Url:       jsii.String("https://token.actions.githubusercontent.com"),
@@ -119,11 +122,13 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 		Environment: &map[string]*string{
 			"LINKPREVIEW_API_KEY_SECRET_ARN": linkPreviewAPIKeySecret.AttrId(),
 			"DEEPGRAM_API_KEY_SECRET_ARN":    deepgramAPIKeySecret.AttrId(),
+			"TRANSCRIPT_BUCKET_ARN":          jsii.String(siteBucketARN),
 			"GOOGLE_APPLICATION_CREDENTIALS": jsii.String("/gcp-credentials.json"),
 		},
 	})
 	linkPreviewAPIKeySecretRef.GrantRead(fn, nil)
 	deepgramAPIKeySecretRef.GrantRead(fn, nil)
+	siteBucket.GrantReadWrite(fn, nil)
 
 	// Create HTTP API Gateway with Lambda proxy integration
 	lambdaIntegration := awsapigatewayv2integrations.NewHttpLambdaIntegration(
@@ -221,6 +226,10 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 	awscdk.NewCfnOutput(stack, jsii.String("ApiUrl"), &awscdk.CfnOutputProps{
 		Value:       httpApi.Url(),
 		Description: jsii.String("HTTP API Gateway URL"),
+	})
+	awscdk.NewCfnOutput(stack, jsii.String("SiteBucketArn"), &awscdk.CfnOutputProps{
+		Value:       jsii.String(siteBucketARN),
+		Description: jsii.String("S3 bucket ARN for debugjois.dev static assets and transcripts"),
 	})
 
 	return stack

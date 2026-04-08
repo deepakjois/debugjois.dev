@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,12 +12,18 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/deepakjois/debugjois.dev/backend/api/internal/cmdflags"
 	"github.com/deepakjois/debugjois.dev/backend/api/internal/podcastaddict"
 	"github.com/deepakjois/debugjois.dev/backend/api/internal/transcribe"
 	"github.com/joho/godotenv"
 )
 
-var transcribePodcastFunc = transcribe.TranscribePodcast
+const transcriptBucketARNEnvVar = "TRANSCRIPT_BUCKET_ARN"
+
+var (
+	transcribePodcastFunc      = transcribe.TranscribePodcast
+	persistTranscriptStoreFunc = podcastaddict.PersistTranscript
+)
 
 const cliTimeout = 10 * time.Minute
 
@@ -35,7 +43,7 @@ func main() {
 }
 
 func run(ctx context.Context, args []string, stdin io.Reader, stdout io.Writer, client *http.Client) error {
-	input, err := readInput(args, stdin)
+	options, input, err := parseArgs(args, stdin)
 	if err != nil {
 		return err
 	}
@@ -50,39 +58,62 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout io.Writer, 
 		return err
 	}
 
-	enc := json.NewEncoder(stdout)
-	enc.SetEscapeHTML(false)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(transcriptionResult); err != nil {
+	body, err := json.Marshal(transcriptionResult)
+	if err != nil {
+		return fmt.Errorf("marshal result: %w", err)
+	}
+
+	if options.storeBucketARN != "" {
+		if err := os.Setenv(transcriptBucketARNEnvVar, options.storeBucketARN); err != nil {
+			return fmt.Errorf("set %s: %w", transcriptBucketARNEnvVar, err)
+		}
+		if err := persistTranscriptStoreFunc(ctx, options.storeBucketARN, "transcribe", result, body); err != nil {
+			return err
+		}
+	}
+
+	if err := writeIndentedJSON(stdout, body); err != nil {
 		return fmt.Errorf("encode result: %w", err)
 	}
 
 	return nil
 }
 
-func readInput(args []string, stdin io.Reader) (string, error) {
-	if len(args) > 1 {
-		return "", fmt.Errorf("expected at most one positional argument")
+type cliOptions struct {
+	storeBucketARN string
+}
+
+func parseArgs(args []string, stdin io.Reader) (cliOptions, string, error) {
+	flags := flag.NewFlagSet("transcribe", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+
+	storeBucketARN := flags.String("store", "", "Store transcript JSON in the given S3 bucket ARN")
+	if err := flags.Parse(args); err != nil {
+		return cliOptions{}, "", fmt.Errorf("parse flags: %w", err)
 	}
-	if len(args) == 1 {
-		input := strings.TrimSpace(args[0])
+
+	if flags.NArg() > 1 {
+		return cliOptions{}, "", fmt.Errorf("expected at most one positional argument")
+	}
+	if flags.NArg() == 1 {
+		input := strings.TrimSpace(flags.Arg(0))
 		if input == "" {
-			return "", fmt.Errorf("input is empty")
+			return cliOptions{}, "", fmt.Errorf("input is empty")
 		}
-		return input, nil
+		return cliOptions{storeBucketARN: strings.TrimSpace(*storeBucketARN)}, input, nil
 	}
 
 	data, err := io.ReadAll(stdin)
 	if err != nil {
-		return "", fmt.Errorf("read stdin: %w", err)
+		return cliOptions{}, "", fmt.Errorf("read stdin: %w", err)
 	}
 
 	input := strings.TrimSpace(string(data))
 	if input == "" {
-		return "", fmt.Errorf("input is empty")
+		return cliOptions{}, "", fmt.Errorf("input is empty")
 	}
 
-	return input, nil
+	return cliOptions{storeBucketARN: strings.TrimSpace(*storeBucketARN)}, input, nil
 }
 
 func newHTTPClient() *http.Client {
@@ -99,4 +130,15 @@ func loadCLIEnv() error {
 	}
 
 	return nil
+}
+
+func writeIndentedJSON(w io.Writer, body []byte) error {
+	var indented bytes.Buffer
+	if err := json.Indent(&indented, body, "", "  "); err != nil {
+		return err
+	}
+	indented.WriteByte('\n')
+
+	_, err := w.Write(indented.Bytes())
+	return err
 }

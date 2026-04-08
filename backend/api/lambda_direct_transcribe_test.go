@@ -11,6 +11,14 @@ import (
 
 func TestHandleDirectLambdaEventTranscribe(t *testing.T) {
 	original := transcribePodcastFunc
+	originalPersist := persistTranscriptResultFunc
+	t.Setenv("AWS_LAMBDA_RUNTIME_API", "127.0.0.1")
+	t.Setenv(transcriptBucketARNEnvVar, "arn:aws:s3:::debugjois-dev-site")
+
+	var persistedBucketARN string
+	var persistedAction string
+	var persistedPodcast podcastaddict.Result
+	var persistedBody []byte
 	transcribePodcastFunc = func(_ context.Context, request transcribe.DirectRequest) (transcribe.Result, error) {
 		if request.Action != "transcribe" {
 			t.Fatalf("expected action %q, got %q", "transcribe", request.Action)
@@ -24,8 +32,16 @@ func TestHandleDirectLambdaEventTranscribe(t *testing.T) {
 			Deepgram: json.RawMessage(`{"metadata":{"request_id":"dg-123"}}`),
 		}, nil
 	}
+	persistTranscriptResultFunc = func(_ context.Context, bucketARN, action string, podcast podcastaddict.Result, body []byte) error {
+		persistedBucketARN = bucketARN
+		persistedAction = action
+		persistedPodcast = podcast
+		persistedBody = append([]byte(nil), body...)
+		return nil
+	}
 	defer func() {
 		transcribePodcastFunc = original
+		persistTranscriptResultFunc = originalPersist
 	}()
 
 	payload := json.RawMessage(`{
@@ -52,6 +68,55 @@ func TestHandleDirectLambdaEventTranscribe(t *testing.T) {
 	}
 	if string(got.Deepgram) != `{"metadata":{"request_id":"dg-123"}}` {
 		t.Fatalf("unexpected Deepgram payload %s", string(got.Deepgram))
+	}
+	if persistedBucketARN != "arn:aws:s3:::debugjois-dev-site" {
+		t.Fatalf("unexpected bucket ARN %q", persistedBucketARN)
+	}
+	if persistedAction != "transcribe" {
+		t.Fatalf("unexpected persisted action %q", persistedAction)
+	}
+	if persistedPodcast.Podcast.Title != "Example Podcast" {
+		t.Fatalf("expected transcript persistence to receive podcast metadata, got %#v", persistedPodcast)
+	}
+	if string(persistedBody) == "" {
+		t.Fatal("expected persisted JSON body")
+	}
+}
+
+func TestHandleDirectLambdaEventTranscribeSkipsPersistenceOutsideLambda(t *testing.T) {
+	original := transcribePodcastFunc
+	originalPersist := persistTranscriptResultFunc
+	t.Setenv("AWS_LAMBDA_RUNTIME_API", "")
+
+	transcribePodcastFunc = func(_ context.Context, request transcribe.DirectRequest) (transcribe.Result, error) {
+		return transcribe.Result{
+			Podcast:  request.Podcast,
+			Deepgram: json.RawMessage(`{"metadata":{"request_id":"dg-local"}}`),
+		}, nil
+	}
+	persistTranscriptResultFunc = func(context.Context, string, string, podcastaddict.Result, []byte) error {
+		t.Fatal("expected local direct invocation to skip transcript persistence")
+		return nil
+	}
+	defer func() {
+		transcribePodcastFunc = original
+		persistTranscriptResultFunc = originalPersist
+	}()
+
+	payload := json.RawMessage(`{
+		"action":"transcribe",
+		"podcast":{
+			"podcast":{"title":"Example Podcast"},
+			"episode":{"title":"Example Episode","audio_url":"https://cdn.example.com/audio.mp3","description_html":"<p>hello</p>"}
+		}
+	}`)
+
+	result, err := handleDirectLambdaEvent(context.Background(), payload)
+	if err != nil {
+		t.Fatalf("handleDirectLambdaEvent returned error: %v", err)
+	}
+	if string(result) == "" {
+		t.Fatal("expected JSON response")
 	}
 }
 
