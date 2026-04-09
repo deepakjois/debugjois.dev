@@ -56,7 +56,7 @@ Full stack:
 
 ```bash
 # Terminal 1
-cd backend/api && go run .
+cd backend/api && go run . serve
 
 # Terminal 2
 cd frontend && npm run dev

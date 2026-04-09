@@ -3,11 +3,16 @@ import {
   BackendError,
   getDailyNote,
   getLinkPreview,
+  podcastTranscribe,
   saveDailyNote,
   validateSession,
 } from "./backend";
 
 const fetchMock = vi.fn<typeof fetch>();
+
+function getRequestInit(): RequestInit {
+  return fetchMock.mock.calls[0]?.[1] as RequestInit;
+}
 
 describe("backend service", () => {
   afterEach(() => {
@@ -21,12 +26,13 @@ describe("backend service", () => {
 
     await validateSession("token-123");
 
-    expect(fetchMock).toHaveBeenCalledWith("http://localhost:3000/", {
+    expect(fetchMock).toHaveBeenCalledWith("http://localhost:3000/", expect.any(Object));
+    expect(getRequestInit()).toMatchObject({
       body: undefined,
-      headers: { Authorization: "Bearer token-123" },
       method: "GET",
       signal: undefined,
     });
+    expect(new Headers(getRequestInit().headers).get("Authorization")).toBe("Bearer token-123");
   });
 
   it("maps 403 session validation failures to forbidden errors", async () => {
@@ -80,18 +86,17 @@ describe("backend service", () => {
       title: "2026-03-12.md",
     });
 
-    expect(fetchMock).toHaveBeenCalledWith("http://localhost:3000/daily", {
+    expect(fetchMock).toHaveBeenCalledWith("http://localhost:3000/daily", expect.any(Object));
+    expect(getRequestInit()).toMatchObject({
       body: JSON.stringify({
         contents: btoa("Updated note\n"),
         title: "2026-03-12.md",
       }),
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer token-123",
-      },
       method: "POST",
       signal: undefined,
     });
+    expect(new Headers(getRequestInit().headers).get("Content-Type")).toBe("application/json");
+    expect(new Headers(getRequestInit().headers).get("Authorization")).toBe("Bearer token-123");
   });
 
   it("fetches a link preview", async () => {
@@ -109,13 +114,64 @@ describe("backend service", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:3000/linkpreview?q=https%3A%2F%2Fexample.com",
-      {
-        body: undefined,
-        headers: { Authorization: "Bearer token-123" },
-        method: "GET",
-        signal: undefined,
-      },
+      expect.any(Object),
     );
+    expect(getRequestInit()).toMatchObject({
+      body: undefined,
+      method: "GET",
+      signal: undefined,
+    });
+    expect(new Headers(getRequestInit().headers).get("Authorization")).toBe("Bearer token-123");
+  });
+
+  it("posts podcast payloads as form data", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          podcast: {
+            source: "podcastaddict",
+            podcast: {
+              name: "Debug Jams",
+              page_url: "https://example.com/podcast",
+              artwork_url: "https://example.com/artwork.jpg",
+            },
+            episode: {
+              title: "Episode title",
+              page_url: "https://example.com/episode",
+              mp3_url: "https://example.com/episode.mp3",
+              publication_date: "2026-04-09T00:00:00Z",
+              author: "Debug Jams",
+              description_html: "<p>Episode description</p>",
+            },
+          },
+          transcription_lambda_id: "local-123",
+        }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      podcastTranscribe("token-123", "Shared from Podcast Addict https://example.com/episode"),
+    ).resolves.toMatchObject({
+      transcription_lambda_id: "local-123",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:3000/podcast-transcribe",
+      expect.any(Object),
+    );
+    expect(getRequestInit()).toMatchObject({
+      body: new URLSearchParams({
+        text: "Shared from Podcast Addict https://example.com/episode",
+      }),
+      method: "POST",
+      signal: undefined,
+    });
+    expect(new Headers(getRequestInit().headers).get("Content-Type")).toBe(
+      "application/x-www-form-urlencoded",
+    );
+    expect(new Headers(getRequestInit().headers).get("Authorization")).toBe("Bearer token-123");
   });
 
   it("maps network failures to backend errors", async () => {

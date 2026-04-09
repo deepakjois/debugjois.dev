@@ -1,21 +1,6 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { useAuth } from "../auth";
+import { createFileRoute } from "@tanstack/react-router";
+import { PodscriberPage } from "../pages/PodscriberPage";
 
 export const Route = createFileRoute("/podscriber")({
-  component: Podscriber,
+  component: PodscriberPage,
 });
-
-export function Podscriber() {
-  const { signOut } = useAuth();
-
-  return (
-    <div>
-      <h1>Podscriber</h1>
-      <p>Placeholder for the next app.</p>
-      <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-        <Link to="/">Back to apps</Link>
-        <button onClick={signOut}>Sign out</button>
-      </div>
-    </div>
-  );
-}

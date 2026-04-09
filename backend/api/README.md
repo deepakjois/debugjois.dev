@@ -36,7 +36,7 @@ gcloud auth application-default login \
   --impersonate-service-account=gdrive-obsidian@daily-notes-obsidian-gdrive.iam.gserviceaccount.com \
   --scopes=https://www.googleapis.com/auth/drive
 
-go run .
+go run . serve
 ```
 
 The server listens on `http://localhost:8000` by default.
@@ -48,7 +48,14 @@ access uses Application Default Credentials (ADC).
 To override the port:
 
 ```bash
-PORT=9000 go run .
+PORT=9000 go run . serve
+```
+
+To invoke the shared backend event handler locally without starting the HTTP server:
+
+```bash
+printf '{"action":"health-check"}' | go run . invoke
+go run . invoke --payload event.json
 ```
 
 ## Tests

@@ -18,7 +18,7 @@ workspace in `go.work`. All Go modules use Go `1.26.1`.
 ## Common commands
 
 - Site: `cd site && go build -o debugjois-site . && ./debugjois-site build`
-- Backend API: `cd backend/api && go test ./... && go run .`
+- Backend API: `cd backend/api && go test ./... && go run . serve`
 - Backend invoke: `cd backend/api && printf '{"action":"health-check"}' | go run . invoke`
 - Frontend: `cd frontend && npm install && npm run dev`
 - Infra deploy: `./infra/deploy.sh`

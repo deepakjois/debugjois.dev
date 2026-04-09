@@ -8,12 +8,19 @@ export type BackendErrorKind = "unauthenticated" | "forbidden" | "http" | "netwo
 export class BackendError extends Error {
   kind: BackendErrorKind;
   status: number | null;
+  responseMessage: string | null;
 
-  constructor(kind: BackendErrorKind, message: string, status: number | null = null) {
+  constructor(
+    kind: BackendErrorKind,
+    message: string,
+    status: number | null = null,
+    responseMessage: string | null = null,
+  ) {
     super(message);
     this.name = "BackendError";
     this.kind = kind;
     this.status = status;
+    this.responseMessage = responseMessage;
   }
 }
 
@@ -21,6 +28,7 @@ const API_URL = import.meta.env.VITE_SITE_BACKEND_URL;
 
 interface RequestOptions {
   body?: BodyInit;
+  headers?: HeadersInit;
   method?: string;
   signal?: AbortSignal;
   token: string;
@@ -55,11 +63,26 @@ function decodeBase64(value: string): string {
   return new TextDecoder().decode(bytes);
 }
 
+async function getErrorResponseMessage(response: Response): Promise<string | null> {
+  try {
+    const body = (await response.json()) as { error?: unknown };
+    return typeof body.error === "string" && body.error.trim() ? body.error : null;
+  } catch {
+    return null;
+  }
+}
+
 async function request(path: string, options: RequestOptions): Promise<Response> {
-  const { body, method = "GET", signal, token } = options;
-  const headers: HeadersInit = body
-    ? { "Content-Type": "application/json", ...authHeaders(token) }
-    : authHeaders(token);
+  const { body, headers: customHeaders, method = "GET", signal, token } = options;
+  const headers = new Headers(authHeaders(token));
+
+  if (customHeaders) {
+    new Headers(customHeaders).forEach((value, key) => headers.set(key, value));
+  }
+
+  if (body && !(body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
 
   let response: Response;
   try {
@@ -81,15 +104,17 @@ async function request(path: string, options: RequestOptions): Promise<Response>
     return response;
   }
 
+  const responseMessage = await getErrorResponseMessage(response);
+
   if (response.status === 401) {
-    throw new BackendError("unauthenticated", "Unauthorized", response.status);
+    throw new BackendError("unauthenticated", "Unauthorized", response.status, responseMessage);
   }
 
   if (response.status === 403) {
-    throw new BackendError("forbidden", "Forbidden", response.status);
+    throw new BackendError("forbidden", "Forbidden", response.status, responseMessage);
   }
 
-  throw new BackendError("http", `HTTP ${response.status}`, response.status);
+  throw new BackendError("http", `HTTP ${response.status}`, response.status, responseMessage);
 }
 
 export async function validateSession(token: string, signal?: AbortSignal): Promise<void> {
@@ -111,6 +136,26 @@ export interface LinkPreview {
   description: string;
 }
 
+export interface PodcastTranscribeResponse {
+  podcast: {
+    source: string;
+    podcast: {
+      name: string;
+      page_url: string;
+      artwork_url: string;
+    };
+    episode: {
+      title: string;
+      page_url: string;
+      mp3_url: string;
+      publication_date: string;
+      author: string;
+      description_html: string;
+    };
+  };
+  transcription_lambda_id: string;
+}
+
 export async function getLinkPreview(
   token: string,
   url: string,
@@ -118,6 +163,22 @@ export async function getLinkPreview(
 ): Promise<LinkPreview> {
   const response = await request(`/linkpreview?q=${encodeURIComponent(url)}`, { signal, token });
   return (await response.json()) as LinkPreview;
+}
+
+export async function podcastTranscribe(
+  token: string,
+  text: string,
+  signal?: AbortSignal,
+): Promise<PodcastTranscribeResponse> {
+  const response = await request("/podcast-transcribe", {
+    body: new URLSearchParams({ text }),
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    method: "POST",
+    signal,
+    token,
+  });
+
+  return (await response.json()) as PodcastTranscribeResponse;
 }
 
 export async function saveDailyNote(

@@ -80,9 +80,12 @@ The backend API lives in `backend/api/` and is written in Go.
 
 Run these from `backend/api/`:
 
-- `go run .` - start the local server on `http://localhost:8000`
-- `PORT=9000 go run .` - override the local port
+- `go run . serve` - start the local server on `http://localhost:8000`
+- `PORT=9000 go run . serve` - override the local port
 - `printf '{"action":"health-check"}' | go run . invoke` - invoke the shared backend event handler with event JSON from stdin
+- `go run . invoke --payload event.json` - invoke the shared backend event handler with event JSON from a file
+- `go run ./cmd/transcribe "<podcast-addict-share-text-or-url>"` - parse a Podcast Addict share payload and transcribe the episode audio with Deepgram
+- `go run ./cmd/transcribe --store arn:aws:s3:::debugjois-dev-site "<podcast-addict-share-text-or-url>"` - transcribe and also persist the transcript JSON to S3
 - `go test ./...` - run backend tests
 - `go build .` - build the binary
 
@@ -139,7 +142,7 @@ After every set of frontend edits, always run these steps in order — no except
 
 ```bash
 # Terminal 1
-cd backend/api && go run .
+cd backend/api && go run . serve
 
 # Terminal 2
 cd frontend && npm run dev

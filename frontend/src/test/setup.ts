@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom";
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeAll, afterAll } from "vitest";
-import { resetMockDailyNote } from "./mocks/handlers";
+import { resetMockDailyNote, resetMockPodcastTranscribe } from "./mocks/handlers";
 import { server } from "./mocks/server";
 
 // React 19 checks globalThis.IS_REACT_ACT_ENVIRONMENT, but @testing-library/react
@@ -23,6 +23,7 @@ beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
   server.resetHandlers();
   resetMockDailyNote();
+  resetMockPodcastTranscribe();
   cleanup();
 });
 afterAll(() => server.close());

@@ -129,6 +129,10 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 	linkPreviewAPIKeySecretRef.GrantRead(fn, nil)
 	deepgramAPIKeySecretRef.GrantRead(fn, nil)
 	siteBucket.GrantReadWrite(fn, nil)
+	fn.AddToRolePolicy(awsiam.NewPolicyStatement(&awsiam.PolicyStatementProps{
+		Actions:   jsii.Strings("lambda:InvokeFunction"),
+		Resources: jsii.Strings("*"),
+	}))
 
 	// Create HTTP API Gateway with Lambda proxy integration
 	lambdaIntegration := awsapigatewayv2integrations.NewHttpLambdaIntegration(
