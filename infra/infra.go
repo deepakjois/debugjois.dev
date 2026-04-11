@@ -122,7 +122,6 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 		Environment: &map[string]*string{
 			"LINKPREVIEW_API_KEY_SECRET_ARN": linkPreviewAPIKeySecret.AttrId(),
 			"DEEPGRAM_API_KEY_SECRET_ARN":    deepgramAPIKeySecret.AttrId(),
-			"TRANSCRIPT_BUCKET_ARN":          jsii.String(siteBucketARN),
 			"GOOGLE_APPLICATION_CREDENTIALS": jsii.String("/gcp-credentials.json"),
 		},
 	})

@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Transcript Reader</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&family=DM+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg: #101113;
+        --bg-raised: #18191d;
+        --bg-overlay: rgba(16, 17, 19, 0.74);
+        --border: #252730;
+        --text: #b8bac2;
+        --text-dim: #6b6e7a;
+        --text-bright: #e4e5eb;
+        --accent: #8e9df5;
+        --accent-dim: rgba(142, 157, 245, 0.12);
+        --accent-soft: rgba(142, 157, 245, 0.2);
+        --serif: "Newsreader", "Georgia", serif;
+        --sans: "DM Sans", system-ui, sans-serif;
+        --max-w: 660px;
+      }
+
+      html {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--serif);
+        font-size: 17px;
+        line-height: 1.78;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body {
+        min-height: 100vh;
+      }
+
+      .content {
+        max-width: var(--max-w);
+        margin: 0 auto;
+        padding: 56px 24px 120px;
+      }
+
+      .toolbar {
+        max-width: var(--max-w);
+        margin: 0 auto;
+        padding: 22px 24px 0;
+      }
+
+      .search-trigger {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: transparent;
+        color: var(--text-dim);
+        cursor: pointer;
+        transition:
+          color 0.15s ease,
+          border-color 0.15s ease,
+          background 0.15s ease;
+      }
+
+      .search-trigger:hover,
+      .search-trigger:focus-visible {
+        outline: none;
+        color: var(--text-bright);
+        border-color: var(--accent-soft);
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .search-trigger svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .status {
+        font-family: var(--sans);
+        font-size: 14px;
+        color: var(--text-dim);
+      }
+
+      .status-error {
+        color: #f2a7a7;
+      }
+
+      .episode-header {
+        margin-bottom: 52px;
+        padding-bottom: 40px;
+        border-bottom: 1px solid var(--border);
+        animation: fadeIn 0.5s ease both;
+      }
+
+      .modal-root {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 72px 20px 24px;
+        background: var(--bg-overlay);
+        backdrop-filter: blur(8px);
+        z-index: 10;
+      }
+
+      .modal-root.is-open {
+        display: flex;
+      }
+
+      .modal-panel {
+        width: min(560px, 100%);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background: rgba(24, 25, 29, 0.95);
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+        overflow: hidden;
+      }
+
+      .modal-search {
+        width: 100%;
+        border: 0;
+        border-bottom: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-bright);
+        font-family: var(--sans);
+        font-size: 15px;
+        padding: 18px 20px;
+      }
+
+      .modal-search::placeholder {
+        color: var(--text-dim);
+      }
+
+      .modal-search:focus {
+        outline: none;
+      }
+
+      .modal-results {
+        list-style: none;
+        padding: 10px;
+      }
+
+      .modal-result {
+        width: 100%;
+        border: 0;
+        border-radius: 14px;
+        background: transparent;
+        color: inherit;
+        text-align: left;
+        padding: 13px 12px;
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+
+      .modal-result:hover,
+      .modal-result.is-active {
+        background: var(--accent-dim);
+      }
+
+      .modal-result:focus {
+        outline: none;
+      }
+
+      .modal-result-title {
+        display: block;
+        font-family: var(--serif);
+        font-size: 21px;
+        line-height: 1.25;
+        color: var(--text-bright);
+      }
+
+      .modal-result-date {
+        display: block;
+        margin-top: 5px;
+        font-family: var(--sans);
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+      }
+
+      .modal-empty {
+        padding: 18px 20px 22px;
+        font-family: var(--sans);
+        font-size: 13px;
+        color: var(--text-dim);
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .podcast-name {
+        font-family: var(--sans);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 16px;
+      }
+
+      .episode-title {
+        font-family: var(--serif);
+        font-size: 30px;
+        font-weight: 500;
+        line-height: 1.3;
+        color: var(--text-bright);
+        margin-bottom: 20px;
+        letter-spacing: -0.01em;
+      }
+
+      .episode-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 20px;
+        font-family: var(--sans);
+        font-size: 13px;
+        color: var(--text-dim);
+        margin-bottom: 18px;
+      }
+
+      .episode-meta span + span::before {
+        content: "\00b7";
+        margin-right: 10px;
+        opacity: 0.5;
+      }
+
+      .episode-desc {
+        font-family: var(--sans);
+        font-size: 14.5px;
+        line-height: 1.6;
+        color: var(--text-dim);
+      }
+
+      .episode-link {
+        display: inline-block;
+        margin-top: 16px;
+        font-family: var(--sans);
+        font-size: 13px;
+        color: var(--accent);
+        text-decoration: none;
+        opacity: 0.75;
+        transition: opacity 0.15s;
+      }
+
+      .episode-link:hover {
+        opacity: 1;
+      }
+
+      .transcript {
+        animation: fadeIn 0.6s ease 0.12s both;
+      }
+
+      .transcript-heading {
+        font-family: var(--sans);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        margin-bottom: 36px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .transcript-paragraph {
+        margin-bottom: 1.6em;
+      }
+
+      .transcript-speaker {
+        margin-bottom: 0.45em;
+        font-family: var(--sans);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      .transcript p {
+        font-weight: 300;
+        font-size: 17px;
+        hanging-punctuation: first last;
+      }
+
+      @media (max-width: 600px) {
+        html {
+          font-size: 16px;
+        }
+
+        .episode-title {
+          font-size: 24px;
+        }
+
+        .content {
+          padding: 36px 18px 80px;
+        }
+
+        .toolbar {
+          padding: 18px 18px 0;
+        }
+
+        .modal-root {
+          padding: 48px 14px 18px;
+        }
+
+        .modal-panel {
+          border-radius: 18px;
+        }
+
+        .modal-result-title {
+          font-size: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <button
+        class="search-trigger"
+        id="search-trigger"
+        type="button"
+        aria-label="Search transcripts"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="6.5"></circle>
+          <path d="M16 16L21 21"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-root" id="modal-root" aria-hidden="true">
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-search">
+        <input
+          class="modal-search"
+          id="modal-search"
+          type="search"
+          placeholder="Search transcripts"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <ul class="modal-results" id="modal-results"></ul>
+      </div>
+    </div>
+    <div class="content" id="content">
+      <p class="status">Loading transcript...</p>
+    </div>
+    <script>
+      (async function () {
+        const transcriptIndexURL = "https://www.debugjois.dev/transcripts/transcripts.json";
+        const contentEl = document.getElementById("content");
+        const modalRootEl = document.getElementById("modal-root");
+        const modalSearchEl = document.getElementById("modal-search");
+        const modalResultsEl = document.getElementById("modal-results");
+        const searchTriggerEl = document.getElementById("search-trigger");
+        const maxVisibleResults = 5;
+
+        let transcriptList = [];
+        let visibleResults = [];
+        let activeResultIndex = 0;
+        let isModalOpen = false;
+        let currentTranscriptLocation = "";
+
+        function fmtDate(s) {
+          try {
+            return new Date(s).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            });
+          } catch {
+            return s;
+          }
+        }
+
+        function esc(s) {
+          const d = document.createElement("div");
+          d.textContent = s;
+          return d.innerHTML;
+        }
+
+        function firstPara(html) {
+          const d = document.createElement("div");
+          d.innerHTML = html;
+          const p = d.querySelector("p");
+          return p ? p.textContent.trim() : d.textContent.trim();
+        }
+
+        function setStatus(message, isError) {
+          contentEl.innerHTML =
+            '<p class="status' + (isError ? " status-error" : "") + '">' + esc(message) + "</p>";
+        }
+
+        function fuzzyScore(title, query) {
+          const haystack = title.toLowerCase();
+          const needle = query.trim().toLowerCase();
+          if (!needle) {
+            return 1;
+          }
+          if (haystack.includes(needle)) {
+            return needle.length * 100 - haystack.indexOf(needle);
+          }
+
+          let score = 0;
+          let searchIndex = 0;
+          let streak = 0;
+          for (const char of needle) {
+            const foundAt = haystack.indexOf(char, searchIndex);
+            if (foundAt === -1) {
+              return 0;
+            }
+            if (foundAt === searchIndex) {
+              streak += 1;
+              score += 10 + streak * 3;
+            } else {
+              streak = 0;
+              score += 3;
+            }
+            searchIndex = foundAt + 1;
+          }
+          return score;
+        }
+
+        // Keep the modal state local to this file so loading, search, and rendering stay together.
+        function updateVisibleResults(query) {
+          if (!query.trim()) {
+            visibleResults = transcriptList.slice(0, maxVisibleResults);
+            activeResultIndex =
+              visibleResults.length === 0
+                ? 0
+                : Math.min(activeResultIndex, visibleResults.length - 1);
+            renderModalResults();
+            return;
+          }
+
+          const ranked = transcriptList
+            .map((item, index) => ({ item, index, score: fuzzyScore(item.title || "", query) }))
+            .filter((entry) => entry.score > 0)
+            .sort((a, b) => {
+              if (a.score !== b.score) {
+                return b.score - a.score;
+              }
+              return a.index - b.index;
+            })
+            .slice(0, maxVisibleResults);
+
+          visibleResults = ranked.map((entry) => entry.item);
+          activeResultIndex =
+            visibleResults.length === 0
+              ? 0
+              : Math.min(activeResultIndex, visibleResults.length - 1);
+          renderModalResults();
+        }
+
+        function renderModalResults() {
+          if (visibleResults.length === 0) {
+            modalResultsEl.innerHTML =
+              '<li class="modal-empty">No transcripts match your search.</li>';
+            return;
+          }
+
+          let html = "";
+          for (let i = 0; i < visibleResults.length; i += 1) {
+            const item = visibleResults[i];
+            const isActive = i === activeResultIndex;
+            html +=
+              '<li><button class="modal-result' +
+              (isActive ? " is-active" : "") +
+              '" type="button" data-index="' +
+              i +
+              '">' +
+              '<span class="modal-result-title">' +
+              esc(item.title || "Untitled") +
+              "</span>" +
+              '<span class="modal-result-date">' +
+              esc(item.date ? fmtDate(item.date) : "Undated") +
+              "</span>" +
+              "</button></li>";
+          }
+          modalResultsEl.innerHTML = html;
+        }
+
+        function openModal() {
+          if (!transcriptList.length) {
+            return;
+          }
+          isModalOpen = true;
+          modalRootEl.classList.add("is-open");
+          modalRootEl.setAttribute("aria-hidden", "false");
+          modalSearchEl.value = "";
+          activeResultIndex = 0;
+          updateVisibleResults("");
+          requestAnimationFrame(() => modalSearchEl.focus());
+        }
+
+        function closeModal() {
+          isModalOpen = false;
+          modalRootEl.classList.remove("is-open");
+          modalRootEl.setAttribute("aria-hidden", "true");
+          searchTriggerEl.focus();
+        }
+
+        function renderTranscript(transcript) {
+          const pod = transcript.podcast || {};
+          const ep = pod.episode || {};
+          const meta = (transcript.deepgram || {}).metadata || {};
+          const alt = ((((transcript.deepgram || {}).results || {}).channels || [])[0] || {})
+            .alternatives;
+          const paragraphs = (((alt && alt[0]) || {}).paragraphs || {}).paragraphs || [];
+
+          let html = '<div class="episode-header">';
+          const podName = (pod.podcast || {}).title || "";
+          if (podName) {
+            html += '<div class="podcast-name">' + esc(podName) + "</div>";
+          }
+          const title = ep.title || (pod.source || {}).share_title || "Untitled";
+          html += '<h1 class="episode-title">' + esc(title) + "</h1>";
+          html += '<div class="episode-meta">';
+          if (ep.published_date) {
+            html += "<span>" + esc(fmtDate(ep.published_date)) + "</span>";
+          }
+          if (ep.duration) {
+            html += "<span>" + esc(ep.duration) + "</span>";
+          }
+          if (meta.model_info) {
+            const k = Object.keys(meta.model_info)[0];
+            if (k && meta.model_info[k].name) {
+              html += "<span>Transcribed with " + esc(meta.model_info[k].name) + "</span>";
+            }
+          }
+          html += "</div>";
+          if (ep.description_html) {
+            const desc = firstPara(ep.description_html);
+            if (desc) {
+              html += '<div class="episode-desc">' + esc(desc) + "</div>";
+            }
+          }
+          const epUrl = (pod.source || {}).episode_url;
+          if (epUrl) {
+            html +=
+              '<a class="episode-link" href="' +
+              esc(epUrl) +
+              '" target="_blank" rel="noopener">Listen to episode ↗</a>';
+          }
+          html += "</div>";
+
+          html += '<div class="transcript"><div class="transcript-heading">Transcript</div>';
+          let lastSpeaker = null;
+
+          for (const paragraph of paragraphs) {
+            const speaker = paragraph && paragraph.speaker != null ? paragraph.speaker : 0;
+            const text = (paragraph.sentences || [])
+              .map((sentence) => sentence.text || "")
+              .join(" ")
+              .trim();
+
+            if (!text) {
+              continue;
+            }
+
+            html += '<div class="transcript-paragraph">';
+            if (speaker !== lastSpeaker) {
+              html += '<div class="transcript-speaker">Speaker ' + esc(String(speaker)) + "</div>";
+            }
+            html += "<p>" + esc(text) + "</p>";
+            html += "</div>";
+            lastSpeaker = speaker;
+          }
+
+          html += "</div>";
+          contentEl.innerHTML = html;
+        }
+
+        async function loadTranscript(location) {
+          currentTranscriptLocation = location;
+          setStatus("Loading transcript...", false);
+
+          try {
+            const response = await fetch(location);
+            if (!response.ok) {
+              throw new Error("HTTP " + response.status);
+            }
+            const transcript = await response.json();
+            renderTranscript(transcript);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : "Unknown error";
+            setStatus("Could not load transcript: " + message, true);
+          }
+        }
+
+        async function loadTranscriptIndex() {
+          const response = await fetch(transcriptIndexURL);
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+          }
+          const index = await response.json();
+          return Array.isArray(index.transcripts) ? index.transcripts : [];
+        }
+
+        modalSearchEl.addEventListener("input", function () {
+          activeResultIndex = 0;
+          updateVisibleResults(modalSearchEl.value);
+        });
+
+        modalSearchEl.addEventListener("keydown", function (event) {
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            if (visibleResults.length) {
+              activeResultIndex = (activeResultIndex + 1) % visibleResults.length;
+              renderModalResults();
+            }
+            return;
+          }
+          if (event.key === "ArrowUp") {
+            event.preventDefault();
+            if (visibleResults.length) {
+              activeResultIndex =
+                (activeResultIndex - 1 + visibleResults.length) % visibleResults.length;
+              renderModalResults();
+            }
+            return;
+          }
+          if (event.key === "Enter") {
+            event.preventDefault();
+            const selected = visibleResults[activeResultIndex];
+            if (selected && selected.location && selected.location !== currentTranscriptLocation) {
+              closeModal();
+              loadTranscript(selected.location);
+            } else if (selected && selected.location) {
+              closeModal();
+            }
+            return;
+          }
+          if (event.key === "Escape") {
+            event.preventDefault();
+            closeModal();
+          }
+        });
+
+        modalResultsEl.addEventListener("mousemove", function (event) {
+          const button = event.target.closest("button[data-index]");
+          if (!button) {
+            return;
+          }
+          const nextIndex = Number(button.getAttribute("data-index"));
+          if (!Number.isNaN(nextIndex) && nextIndex !== activeResultIndex) {
+            activeResultIndex = nextIndex;
+            renderModalResults();
+          }
+        });
+
+        modalResultsEl.addEventListener("click", function (event) {
+          const button = event.target.closest("button[data-index]");
+          if (!button) {
+            return;
+          }
+          const nextIndex = Number(button.getAttribute("data-index"));
+          const selected = visibleResults[nextIndex];
+          if (!selected || !selected.location) {
+            return;
+          }
+          closeModal();
+          if (selected.location !== currentTranscriptLocation) {
+            loadTranscript(selected.location);
+          }
+        });
+
+        modalRootEl.addEventListener("click", function (event) {
+          if (event.target === modalRootEl) {
+            closeModal();
+          }
+        });
+
+        document.addEventListener("keydown", function (event) {
+          if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+            event.preventDefault();
+            if (isModalOpen) {
+              closeModal();
+            } else {
+              openModal();
+            }
+            return;
+          }
+          if (event.key === "/" && !isModalOpen) {
+            const target = event.target;
+            if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
+              return;
+            }
+            event.preventDefault();
+            openModal();
+          }
+        });
+
+        searchTriggerEl.addEventListener("click", function () {
+          openModal();
+        });
+
+        try {
+          transcriptList = await loadTranscriptIndex();
+          if (!transcriptList.length) {
+            setStatus("No transcripts available yet.", false);
+            return;
+          }
+
+          // The index is already sorted newest-first, so load the first transcript by default.
+          updateVisibleResults("");
+          await loadTranscript(transcriptList[0].location);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Unknown error";
+          setStatus("Could not load transcript list: " + message, true);
+        }
+      })();
+    </script>
+  </body>
+</html>

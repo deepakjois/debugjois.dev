@@ -84,8 +84,9 @@ Run these from `backend/api/`:
 - `PORT=9000 go run . serve` - override the local port
 - `printf '{"action":"health-check"}' | go run . invoke` - invoke the shared backend event handler with event JSON from stdin
 - `go run . invoke --payload event.json` - invoke the shared backend event handler with event JSON from a file
-- `go run ./cmd/transcribe "<podcast-addict-share-text-or-url>"` - parse a Podcast Addict share payload and transcribe the episode audio with Deepgram
-- `go run ./cmd/transcribe --store arn:aws:s3:::debugjois-dev-site "<podcast-addict-share-text-or-url>"` - transcribe and also persist the transcript JSON to S3
+- `go run ./cmd/podcast-transcribe "<podcast-addict-share-text-or-url>"` - parse a Podcast Addict share payload and transcribe the episode audio with Deepgram; for multiline share text, piping via stdin is safer
+- `printf '%s\n' '[Podcast Name] Episode Title
+https://podcastaddict.com/example/episode/123 via @PodcastAddict' | go run ./cmd/podcast-transcribe --write` - transcribe and also persist the transcript JSON to S3
 - `go test ./...` - run backend tests
 - `go build .` - build the binary
 

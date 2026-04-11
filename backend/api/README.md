@@ -75,23 +75,51 @@ go build .
 Run from `backend/api/`:
 
 ```bash
-go run ./cmd/transcribe "<podcast-addict-share-text-or-url>"
+go run ./cmd/podcast-transcribe "<podcast-addict-share-text-or-url>"
+```
+
+For multiline Podcast Addict share text, prefer piping the input over `stdin`:
+
+```bash
+printf '%s\n' '[Podcast Name] Episode Title
+https://podcastaddict.com/example/episode/123 via @PodcastAddict' \
+  | go run ./cmd/podcast-transcribe
 ```
 
 The CLI reads `DEEPGRAM_API_KEY` from `backend/api/.env`, parses the Podcast
 Addict episode metadata, sends the episode audio URL to Deepgram, and prints the
 transcript JSON to stdout.
 
-To also store the transcript JSON in S3, pass a bucket ARN with `--store`:
+To also store the transcript JSON in S3 and update `transcripts/transcripts.json`,
+pass `--write`:
 
 ```bash
-go run ./cmd/transcribe --store arn:aws:s3:::debugjois-dev-site \
-  "<podcast-addict-share-text-or-url>"
+printf '%s\n' '[Podcast Name] Episode Title
+https://podcastaddict.com/example/episode/123 via @PodcastAddict' \
+  | go run ./cmd/podcast-transcribe --write
 ```
 
-When `--store` is set, the CLI also exports `TRANSCRIPT_BUCKET_ARN` for the
-process and writes the same transcript JSON to `transcripts/<stable-name>.json`
-in the specified bucket.
+When `--write` is set, the CLI writes the same transcript JSON to
+`transcripts/<stable-name>.json` in the site bucket and refreshes
+`transcripts/transcripts.json`.
+
+## Transcript index CLI
+
+Run from `backend/api/`:
+
+```bash
+go run ./cmd/podcast-index
+```
+
+This CLI reads all transcript JSON objects from `transcripts/` in the site S3
+bucket, skips `transcripts/transcripts.json`, and prints a JSON listing shaped
+for frontend consumption.
+
+To write the generated index back to S3:
+
+```bash
+go run ./cmd/podcast-index --write
+```
 
 ## Docker image
 

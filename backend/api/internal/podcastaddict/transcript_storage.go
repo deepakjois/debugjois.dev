@@ -11,10 +11,11 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+
+	"github.com/deepakjois/debugjois.dev/backend/api/internal/transcripts"
 )
 
 const (
@@ -28,6 +29,7 @@ var (
 )
 
 type transcriptS3Client interface {
+	transcripts.S3Client
 	PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
 }
 
@@ -36,11 +38,8 @@ type transcriptRequest struct {
 	Podcast Result `json:"podcast"`
 }
 
-func PersistTranscript(ctx context.Context, bucketARN, action string, podcast Result, body []byte) error {
-	bucketName, err := transcriptBucketNameFromARN(bucketARN)
-	if err != nil {
-		return err
-	}
+func PersistTranscript(ctx context.Context, action string, podcast Result, body []byte) error {
+	bucketName := transcripts.BucketName
 
 	key, err := transcriptObjectKey(action, podcast)
 	if err != nil {
@@ -62,6 +61,10 @@ func PersistTranscript(ctx context.Context, bucketARN, action string, podcast Re
 		return fmt.Errorf("write transcript to s3://%s/%s: %w", bucketName, key, err)
 	}
 
+	if err := transcripts.RefreshIndex(ctx, client, bucketName); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -78,21 +81,6 @@ func newTranscriptS3Client(ctx context.Context, bucketName string) (transcriptS3
 	cfg.Region = region
 
 	return s3.NewFromConfig(cfg), nil
-}
-
-func transcriptBucketNameFromARN(bucketARN string) (string, error) {
-	parsedARN, err := arn.Parse(strings.TrimSpace(bucketARN))
-	if err != nil {
-		return "", fmt.Errorf("parse transcript bucket ARN: %w", err)
-	}
-	if parsedARN.Service != "s3" || parsedARN.Resource == "" {
-		return "", fmt.Errorf("transcript bucket ARN must be an S3 bucket ARN")
-	}
-	if strings.Contains(parsedARN.Resource, "/") {
-		return "", fmt.Errorf("transcript bucket ARN must reference an S3 bucket, not an object")
-	}
-
-	return parsedARN.Resource, nil
 }
 
 func transcriptObjectKey(action string, podcast Result) (string, error) {

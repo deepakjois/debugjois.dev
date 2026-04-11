@@ -12,17 +12,15 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/deepakjois/debugjois.dev/backend/api/internal/cmdflags"
 	"github.com/deepakjois/debugjois.dev/backend/api/internal/podcastaddict"
 	"github.com/deepakjois/debugjois.dev/backend/api/internal/transcribe"
 	"github.com/joho/godotenv"
 )
 
-const transcriptBucketARNEnvVar = "TRANSCRIPT_BUCKET_ARN"
-
 var (
 	transcribePodcastFunc      = transcribe.TranscribePodcast
 	persistTranscriptStoreFunc = podcastaddict.PersistTranscript
+	defaultWriteFlag           = flag.Bool("write", false, "Write transcript JSON and update transcripts.json in S3")
 )
 
 const cliTimeout = 10 * time.Minute
@@ -63,11 +61,8 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout io.Writer, 
 		return fmt.Errorf("marshal result: %w", err)
 	}
 
-	if options.storeBucketARN != "" {
-		if err := os.Setenv(transcriptBucketARNEnvVar, options.storeBucketARN); err != nil {
-			return fmt.Errorf("set %s: %w", transcriptBucketARNEnvVar, err)
-		}
-		if err := persistTranscriptStoreFunc(ctx, options.storeBucketARN, "transcribe", result, body); err != nil {
+	if options.write {
+		if err := persistTranscriptStoreFunc(ctx, "transcribe", result, body); err != nil {
 			return err
 		}
 	}
@@ -80,14 +75,14 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout io.Writer, 
 }
 
 type cliOptions struct {
-	storeBucketARN string
+	write bool
 }
 
 func parseArgs(args []string, stdin io.Reader) (cliOptions, string, error) {
-	flags := flag.NewFlagSet("transcribe", flag.ContinueOnError)
+	flags := flag.NewFlagSet("podcast-transcribe", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 
-	storeBucketARN := flags.String("store", "", "Store transcript JSON in the given S3 bucket ARN")
+	write := flags.Bool("write", *defaultWriteFlag, "Write transcript JSON and update transcripts.json in S3")
 	if err := flags.Parse(args); err != nil {
 		return cliOptions{}, "", fmt.Errorf("parse flags: %w", err)
 	}
@@ -100,7 +95,7 @@ func parseArgs(args []string, stdin io.Reader) (cliOptions, string, error) {
 		if input == "" {
 			return cliOptions{}, "", fmt.Errorf("input is empty")
 		}
-		return cliOptions{storeBucketARN: strings.TrimSpace(*storeBucketARN)}, input, nil
+		return cliOptions{write: *write}, input, nil
 	}
 
 	data, err := io.ReadAll(stdin)
@@ -113,7 +108,7 @@ func parseArgs(args []string, stdin io.Reader) (cliOptions, string, error) {
 		return cliOptions{}, "", fmt.Errorf("input is empty")
 	}
 
-	return cliOptions{storeBucketARN: strings.TrimSpace(*storeBucketARN)}, input, nil
+	return cliOptions{write: *write}, input, nil
 }
 
 func newHTTPClient() *http.Client {

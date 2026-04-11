@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -80,11 +79,7 @@ func handleDirectLambdaEvent(ctx context.Context, payload json.RawMessage) (json
 			return nil, fmt.Errorf("marshal transcript result: %w", err)
 		}
 		if isLambdaRuntime() {
-			bucketARN := strings.TrimSpace(os.Getenv(transcriptBucketARNEnvVar))
-			if bucketARN == "" {
-				return nil, fmt.Errorf("%s must be set in Lambda", transcriptBucketARNEnvVar)
-			}
-			if err := persistTranscriptResultFunc(ctx, bucketARN, directRequest.Action, directRequest.Podcast, body); err != nil {
+			if err := persistTranscriptResultFunc(ctx, directRequest.Action, directRequest.Podcast, body); err != nil {
 				return nil, err
 			}
 		}

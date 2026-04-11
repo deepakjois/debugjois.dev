@@ -179,12 +179,18 @@ func TestPodcastTranscribeDispatcherRunsLocalTranscription(t *testing.T) {
 
 	originalRunLocal := runLocalPodcastTranscriptionFunc
 	originalLocalID := newLocalTranscriptionIDFunc
+	originalInvoke := invokeSelfForPodcastTranscribeFunc
 	defer func() {
 		runLocalPodcastTranscriptionFunc = originalRunLocal
 		newLocalTranscriptionIDFunc = originalLocalID
+		invokeSelfForPodcastTranscribeFunc = originalInvoke
 	}()
 
 	done := make(chan podcastaddict.Result, 1)
+	invokeSelfForPodcastTranscribeFunc = func(context.Context, podcastaddict.Result) (string, error) {
+		t.Fatal("expected local transcription path to avoid Lambda self-invoke")
+		return "", nil
+	}
 	runLocalPodcastTranscriptionFunc = func(_ context.Context, podcast podcastaddict.Result) (transcribe.Result, error) {
 		done <- podcast
 		return transcribe.Result{}, nil

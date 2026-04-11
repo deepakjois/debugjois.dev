@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"testing"
 
@@ -27,8 +26,8 @@ func TestRunPrintsJSONToStdout(t *testing.T) {
 		transcribePodcastFunc = originalTranscribe
 		persistTranscriptStoreFunc = originalPersist
 	}()
-	persistTranscriptStoreFunc = func(context.Context, string, string, podcastaddict.Result, []byte) error {
-		t.Fatal("expected run without --store to skip persistence")
+	persistTranscriptStoreFunc = func(context.Context, string, podcastaddict.Result, []byte) error {
+		t.Fatal("expected run without --write to skip persistence")
 		return nil
 	}
 
@@ -100,12 +99,10 @@ func TestRunStoresTranscriptWhenFlagProvided(t *testing.T) {
 		}, nil
 	}
 
-	var gotBucketARN string
 	var gotAction string
 	var gotPodcast podcastaddict.Result
 	var gotBody []byte
-	persistTranscriptStoreFunc = func(_ context.Context, bucketARN, action string, podcast podcastaddict.Result, body []byte) error {
-		gotBucketARN = bucketARN
+	persistTranscriptStoreFunc = func(_ context.Context, action string, podcast podcastaddict.Result, body []byte) error {
 		gotAction = action
 		gotPodcast = podcast
 		gotBody = append([]byte(nil), body...)
@@ -118,16 +115,12 @@ func TestRunStoresTranscriptWhenFlagProvided(t *testing.T) {
 
 	stdin := strings.NewReader("[Better Offline] The Reality of AI Economics With Paul Kedrosky\nhttps://podcastaddict.com/better-offline/episode/221030037 via @PodcastAddict\n")
 	var stdout bytes.Buffer
-	t.Setenv(transcriptBucketARNEnvVar, "")
 
-	err := run(context.Background(), []string{"--store", "arn:aws:s3:::debugjois-dev-site"}, stdin, &stdout, client)
+	err := run(context.Background(), []string{"--write"}, stdin, &stdout, client)
 	if err != nil {
 		t.Fatalf("run returned error: %v", err)
 	}
 
-	if gotBucketARN != "arn:aws:s3:::debugjois-dev-site" {
-		t.Fatalf("unexpected bucket ARN %q", gotBucketARN)
-	}
 	if gotAction != "transcribe" {
 		t.Fatalf("unexpected action %q", gotAction)
 	}
@@ -136,8 +129,5 @@ func TestRunStoresTranscriptWhenFlagProvided(t *testing.T) {
 	}
 	if string(gotBody) == "" {
 		t.Fatal("expected stored transcript body")
-	}
-	if got := os.Getenv(transcriptBucketARNEnvVar); got != "arn:aws:s3:::debugjois-dev-site" {
-		t.Fatalf("expected %s to be set, got %q", transcriptBucketARNEnvVar, got)
 	}
 }

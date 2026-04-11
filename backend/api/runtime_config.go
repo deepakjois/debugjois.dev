@@ -17,7 +17,6 @@ const (
 	linkPreviewAPIKeySecretARNEnvVar = "LINKPREVIEW_API_KEY_SECRET_ARN"
 	deepgramAPIKeyEnvVar             = "DEEPGRAM_API_KEY"
 	deepgramAPIKeySecretARNEnvVar    = "DEEPGRAM_API_KEY_SECRET_ARN"
-	transcriptBucketARNEnvVar        = "TRANSCRIPT_BUCKET_ARN"
 	linkPreviewBaseURL               = "https://api.linkpreview.net"
 	defaultLocalDotEnvPath           = ".env"
 )

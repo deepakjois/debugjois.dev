@@ -12,10 +12,25 @@ function handler(event) {
         };
     }
 
-    if (uri === '/app' || uri === '/app/' ||
-        (uri.startsWith('/app/') && !uri.startsWith('/app/assets/'))) {
-        request.uri = '/app/index.html';
+    if (uri === '/app/transcript-reader') {
+        request.uri = '/app/transcript-reader.html';
+        return request;
     }
+
+    if (uri === '/app' || uri === '/app/') {
+        request.uri = '/app/index.html';
+        return request;
+    }
+
+    if (!uri.startsWith('/app/')) {
+        return request;
+    }
+
+    if (uri === '/app/transcript-reader.html' || uri.startsWith('/app/assets/')) {
+        return request;
+    }
+
+    request.uri = '/app/index.html';
 
     return request;
 }
