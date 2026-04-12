@@ -254,6 +254,84 @@
         color: var(--text-dim);
       }
 
+      .episode-desc-details {
+        margin-top: 18px;
+      }
+
+      .episode-desc-summary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--sans);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .episode-desc-summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .episode-desc-summary::before {
+        content: "+";
+        font-size: 15px;
+        line-height: 1;
+        color: var(--accent);
+      }
+
+      .episode-desc-details[open] .episode-desc-summary::before {
+        content: "−";
+      }
+
+      .episode-desc-summary:hover,
+      .episode-desc-summary:focus-visible {
+        color: var(--text-bright);
+        outline: none;
+      }
+
+      .episode-desc-details .episode-desc {
+        margin-top: 14px;
+      }
+
+      .episode-desc p,
+      .episode-desc ul,
+      .episode-desc ol {
+        margin: 0 0 0.9em;
+      }
+
+      .episode-desc p:last-child,
+      .episode-desc ul:last-child,
+      .episode-desc ol:last-child {
+        margin-bottom: 0;
+      }
+
+      .episode-desc ul,
+      .episode-desc ol {
+        padding-left: 1.25em;
+      }
+
+      .episode-desc a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      .episode-desc a:hover {
+        text-decoration: underline;
+      }
+
+      .episode-desc strong {
+        color: var(--text-bright);
+        font-weight: 600;
+      }
+
+      .episode-desc em {
+        color: var(--text);
+      }
+
       .episode-link {
         display: inline-block;
         margin-top: 16px;
@@ -456,13 +534,6 @@
           return d.innerHTML;
         }
 
-        function firstPara(html) {
-          const d = document.createElement("div");
-          d.innerHTML = html;
-          const p = d.querySelector("p");
-          return p ? p.textContent.trim() : d.textContent.trim();
-        }
-
         function setStatus(message, isError) {
           contentEl.innerHTML =
             '<p class="status' + (isError ? " status-error" : "") + '">' + esc(message) + "</p>";
@@ -609,10 +680,13 @@
           }
           html += "</div>";
           if (ep.description_html) {
-            const desc = firstPara(ep.description_html);
-            if (desc) {
-              html += '<div class="episode-desc">' + esc(desc) + "</div>";
-            }
+            html +=
+              '<details class="episode-desc-details">' +
+              '<summary class="episode-desc-summary">Show notes</summary>' +
+              '<div class="episode-desc">' +
+              ep.description_html +
+              "</div>" +
+              "</details>";
           }
           const epUrl = (pod.source || {}).episode_url;
           if (epUrl) {
