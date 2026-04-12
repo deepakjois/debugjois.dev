@@ -29,4 +29,6 @@ workspace in `go.work`. All Go modules use Go `1.26.1`.
 - Start the local API server: `cd backend/api && go run . serve`
 - Invoke the shared event handler with JSON from stdin: `cd backend/api && printf '{"action":"health-check"}' | go run . invoke`
 - Invoke with a payload file: `cd backend/api && go run . invoke --payload event.json`
+- Transcribe a Podcast Addict episode by piping the share text or URL over stdin: `cd backend/api && printf '%s\n' 'https://podcastaddict.com/example/episode/123' | go run ./cmd/podcast-transcribe`
+- Prefer stdin piping over positional arguments for `podcast-transcribe`, especially for Markdown-formatted or multiline share text, to avoid shell quoting issues
 - `invoke` rejects API Gateway request events locally; use `serve` and send the request over HTTP instead

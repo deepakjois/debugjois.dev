@@ -18,8 +18,9 @@ import (
 const UserAgent = "Mozilla/5.0 (Android 14; Mobile; rv:124.0) Gecko/124.0 Firefox/124.0"
 
 var (
-	podcastAddictURLPattern   = regexp.MustCompile(`https://(?:www\.)?podcastaddict\.com/\S+`)
-	podcastEpisodePathPattern = regexp.MustCompile(`(^|/)episode/\d+/?$`)
+	podcastAddictMarkdownURLPattern = regexp.MustCompile(`\((https://(?:www\.)?podcastaddict\.com/[^)\s]+)\)`)
+	podcastAddictURLPattern         = regexp.MustCompile(`https://(?:www\.)?podcastaddict\.com/[^\s)]+`)
+	podcastEpisodePathPattern       = regexp.MustCompile(`(^|/)episode/\d+/?$`)
 )
 
 type ErrorKind int
@@ -124,7 +125,7 @@ func parseInput(raw string) (Source, error) {
 		return Source{}, invalidInputError("input is empty")
 	}
 
-	matchedURL := podcastAddictURLPattern.FindString(input)
+	matchedURL := extractEpisodeURL(input)
 	if matchedURL == "" {
 		return Source{}, invalidInputError("input does not contain a Podcast Addict URL")
 	}
@@ -155,6 +156,15 @@ func parseInput(raw string) (Source, error) {
 	}
 
 	return source, nil
+}
+
+func extractEpisodeURL(input string) string {
+	match := podcastAddictMarkdownURLPattern.FindStringSubmatch(input)
+	if len(match) == 2 {
+		return match[1]
+	}
+
+	return podcastAddictURLPattern.FindString(input)
 }
 
 func normalizeEpisodeURL(raw string) (string, error) {

@@ -26,6 +26,23 @@ func TestParseInputRawURL(t *testing.T) {
 	}
 }
 
+func TestParseInputMarkdownURL(t *testing.T) {
+	source, err := parseInput("[Gastropod] Protein, Pyramids, and Politics: The Forgotten Stories and Controversial Science Behind Government Dietary Advice - [Gastropod - Protein, Pyramids, and Politics: The Forgotten Stories and Controversial Science Behind Government Dietary Advice](https://podcastaddict.com/gastropod/episode/221081444) via")
+	if err != nil {
+		t.Fatalf("parseInput returned error: %v", err)
+	}
+
+	if source.ShareTitle != "" {
+		t.Fatalf("expected empty share title, got %q", source.ShareTitle)
+	}
+	if source.EpisodeURL != "https://podcastaddict.com/gastropod/episode/221081444" {
+		t.Fatalf("unexpected episode URL %q", source.EpisodeURL)
+	}
+	if source.Input == "" {
+		t.Fatal("expected input to be preserved")
+	}
+}
+
 func TestParseInputShareFixtures(t *testing.T) {
 	testCases := []struct {
 		name        string
