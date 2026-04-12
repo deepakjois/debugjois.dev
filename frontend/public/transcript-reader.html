@@ -584,13 +584,15 @@
           const alt = ((((transcript.deepgram || {}).results || {}).channels || [])[0] || {})
             .alternatives;
           const paragraphs = (((alt && alt[0]) || {}).paragraphs || {}).paragraphs || [];
+          const title = ep.title || (pod.source || {}).share_title || "Untitled";
+
+          document.title = "Transcript – " + title;
 
           let html = '<div class="episode-header">';
           const podName = (pod.podcast || {}).title || "";
           if (podName) {
             html += '<div class="podcast-name">' + esc(podName) + "</div>";
           }
-          const title = ep.title || (pod.source || {}).share_title || "Untitled";
           html += '<h1 class="episode-title">' + esc(title) + "</h1>";
           html += '<div class="episode-meta">';
           if (ep.published_date) {
