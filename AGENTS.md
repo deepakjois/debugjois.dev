@@ -21,7 +21,7 @@ backend/
   build-and-push-image.sh   # Build and push backend container image
 infra/                      # AWS CDK app and deploy script
   cloudfront/               # CloudFront Function source files
-frontend/                   # Vite + React SPA for /app
+frontend/                   # Vite apps for /apps
 .github/
   actions/
   workflows/
@@ -106,15 +106,15 @@ Run these from `infra/` unless the command already includes the path:
 
 ## Frontend
 
-The frontend lives in `frontend/` and is a Vite + React SPA served under `/app`.
+The frontend lives in `frontend/` and builds multiple Vite apps under `/apps`, including the authenticated SPA under `/apps/spa`.
 
 ### Commands
 
 Run these from `frontend/`:
 
-- `npm run dev` - start the dev server at `http://localhost:5173/app/`
+- `npm run dev` - start the dev server at `http://localhost:5173/apps/spa/`
 - `npm run dev:prod-env` - dev server using production env vars
-- `npm run build` - build to `../site/build/app/`
+- `npm run build` - build to `../site/build/apps/`
 - `npm run preview` - preview the production build locally
 - `npm test` - run tests once
 - `npm run test:watch` - run tests in watch mode
@@ -135,8 +135,8 @@ After every set of frontend edits, always run these steps in order — no except
 
 ### Configuration
 
-- Vite `base` is `/app/`
-- TanStack Router `basepath` is `/app`
+- Vite `base` is `/apps/`
+- TanStack Router `basepath` is `/apps/spa`
 - Copy `frontend/.env.example` to `frontend/.env` as a starting point
 
 ### Local full-stack development

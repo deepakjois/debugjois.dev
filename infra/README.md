@@ -38,8 +38,8 @@ From the repository root:
 
 - `infra.go` falls back to the currently deployed Lambda image when no `--image-uri` argument is provided
 - the stack outputs include `ApiUrl`, `LambdaFunctionName`, and `EcrRepositoryUri`
-- `cloudfront/domain-redirect-debugjois-dev.js` is the checked-in source for the live CloudFront Function that redirects `debugjois.dev` to `www.debugjois.dev` and rewrites `/app` SPA routes to `/app/index.html`
-- deploy CloudFront Function updates with `aws cloudfront update-function --name domain-redirect-debugjois-dev --if-match <etag> --function-config Comment="Redirect debugjois.dev -> www.debugjois.dev and rewrite /app SPA paths",Runtime=cloudfront-js-2.0 --function-code fileb://"$(pwd)/cloudfront/domain-redirect-debugjois-dev.js"` and then `aws cloudfront publish-function --name domain-redirect-debugjois-dev --if-match <etag>` from `infra/`
+- `cloudfront/domain-redirect-debugjois-dev.js` is the checked-in source for the live CloudFront Function that redirects `debugjois.dev` to `www.debugjois.dev`, rewrites `/apps/spa` routes to `/apps/spa/index.html`, and maps `/apps/transcript-reader` to `/apps/transcript-reader/index.html`
+- deploy CloudFront Function updates with `aws cloudfront update-function --name domain-redirect-debugjois-dev --if-match <etag> --function-config Comment="Redirect debugjois.dev -> www.debugjois.dev, rewrite /apps/spa routes, and map /apps/transcript-reader",Runtime=cloudfront-js-2.0 --function-code fileb://"$(pwd)/cloudfront/domain-redirect-debugjois-dev.js"` and then `aws cloudfront publish-function --name domain-redirect-debugjois-dev --if-match <etag>` from `infra/`
 
 ## GCP Workload Identity Federation
 

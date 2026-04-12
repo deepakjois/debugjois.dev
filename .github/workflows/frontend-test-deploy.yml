@@ -33,4 +33,4 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-2
       - name: Deploy frontend
-        run: aws s3 sync ../site/build/app s3://debugjois-dev-site/app/ --delete
+        run: aws s3 sync ../site/build/apps s3://debugjois-dev-site/apps/ --delete

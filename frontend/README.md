@@ -1,6 +1,6 @@
 # Frontend
 
-React SPA for authenticated apps under `/app`.
+Frontend apps under `/apps`, including the authenticated SPA under `/apps/spa`.
 
 ## Stack
 
@@ -32,9 +32,9 @@ npm run fmt
 
 ## Routing and build output
 
-- Vite `base` is `/app/`
-- TanStack Router `basepath` is `/app`
-- production builds are written to `../site/build/app/`
+- Vite `base` is `/apps/`
+- TanStack Router `basepath` is `/apps/spa`
+- production builds are written to `../site/build/apps/`
 
 ## Environment
 
@@ -62,10 +62,12 @@ cd backend/api && go run . serve
 cd frontend && npm run dev
 ```
 
-Open `http://localhost:5173/app/`.
+Open `http://localhost:5173/apps/spa/` for the SPA.
+
+The standalone transcript reader is available at `http://localhost:5173/apps/transcript-reader/`.
 
 ## Testing notes
 
 - tests run without the TanStack Router Vite plugin
-- `src/test/` contains shared test utilities and MSW setup
-- `src/__tests__/` contains route-level tests
+- `src/spa/test/` contains shared test utilities and MSW setup
+- `src/spa/__tests__/` contains route-level tests

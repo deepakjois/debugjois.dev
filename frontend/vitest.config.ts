@@ -14,13 +14,18 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    setupFiles: ["./src/test/setup.ts"],
+    setupFiles: ["./src/spa/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
-    exclude: ["src/routeTree.gen.ts", "node_modules"],
+    exclude: ["src/spa/routeTree.gen.ts", "node_modules"],
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
-      exclude: ["src/routeTree.gen.ts", "src/test/**", "src/__tests__/**", "*.config.ts"],
+      exclude: [
+        "src/spa/routeTree.gen.ts",
+        "src/spa/test/**",
+        "src/spa/__tests__/**",
+        "*.config.ts",
+      ],
     },
   },
 });

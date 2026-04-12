@@ -1,6 +1,6 @@
 # debugjois.dev
 
-Monorepo for [debugjois.dev](https://debugjois.dev) and authenticated SPA apps under `/app`.
+Monorepo for [debugjois.dev](https://debugjois.dev) and frontend apps under `/apps`.
 
 ## Layout
 
@@ -8,7 +8,7 @@ Monorepo for [debugjois.dev](https://debugjois.dev) and authenticated SPA apps u
 - `backend/api/` - Go HTTP API that also runs as an AWS Lambda
 - `backend/build-and-push-image.sh` - builds and pushes the Lambda image
 - `infra/` - AWS CDK app and deploy script for backend infrastructure
-- `frontend/` - Vite + React SPA served at `/app`
+- `frontend/` - Vite frontend apps served under `/apps`
 
 ## Workspace
 
