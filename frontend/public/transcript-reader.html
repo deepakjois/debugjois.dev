@@ -392,6 +392,54 @@
         let isModalOpen = false;
         let currentTranscriptLocation = "";
 
+        function extractFullHash(location) {
+          const match = String(location || "").match(/--([a-f0-9]{64})\.json$/i);
+          return match ? match[1].toLowerCase() : "";
+        }
+
+        function canonicalHashForTranscript(item) {
+          const fullHash = extractFullHash(item && item.location);
+          return fullHash ? fullHash.slice(0, 16) : "";
+        }
+
+        function readRequestedHash() {
+          const match = window.location.hash.match(/^#t=([a-f0-9]{4,64})$/i);
+          return match ? match[1].toLowerCase() : "";
+        }
+
+        function setRequestedHash(item, replace) {
+          const canonicalHash = canonicalHashForTranscript(item);
+          if (!canonicalHash) {
+            return;
+          }
+
+          const nextURL = window.location.pathname + window.location.search + "#t=" + canonicalHash;
+          if (replace) {
+            window.history.replaceState(null, "", nextURL);
+            return;
+          }
+
+          window.history.pushState(null, "", nextURL);
+        }
+
+        function findTranscriptByHashPrefix(prefix) {
+          const normalizedPrefix = String(prefix || "")
+            .trim()
+            .toLowerCase();
+          if (!/^[a-f0-9]{4,64}$/.test(normalizedPrefix)) {
+            return null;
+          }
+
+          for (const item of transcriptList) {
+            const fullHash = extractFullHash(item.location);
+            if (fullHash && fullHash.startsWith(normalizedPrefix)) {
+              return item;
+            }
+          }
+
+          return null;
+        }
+
         function fmtDate(s) {
           try {
             return new Date(s).toLocaleDateString("en-US", {
@@ -602,12 +650,20 @@
           contentEl.innerHTML = html;
         }
 
-        async function loadTranscript(location) {
-          currentTranscriptLocation = location;
+        async function loadTranscript(item, options) {
+          const replaceHash = !options || options.replaceHash !== false;
+          if (!item || !item.location) {
+            return;
+          }
+
+          currentTranscriptLocation = item.location;
+          if (replaceHash) {
+            setRequestedHash(item, true);
+          }
           setStatus("Loading transcript...", false);
 
           try {
-            const response = await fetch(location);
+            const response = await fetch(item.location);
             if (!response.ok) {
               throw new Error("HTTP " + response.status);
             }
@@ -656,8 +712,9 @@
             const selected = visibleResults[activeResultIndex];
             if (selected && selected.location && selected.location !== currentTranscriptLocation) {
               closeModal();
-              loadTranscript(selected.location);
+              loadTranscript(selected, { replaceHash: true });
             } else if (selected && selected.location) {
+              setRequestedHash(selected, true);
               closeModal();
             }
             return;
@@ -692,7 +749,9 @@
           }
           closeModal();
           if (selected.location !== currentTranscriptLocation) {
-            loadTranscript(selected.location);
+            loadTranscript(selected, { replaceHash: true });
+          } else {
+            setRequestedHash(selected, true);
           }
         });
 
@@ -733,9 +792,16 @@
             return;
           }
 
-          // The index is already sorted newest-first, so load the first transcript by default.
           updateVisibleResults("");
-          await loadTranscript(transcriptList[0].location);
+
+          // Resolve short permalink hashes against the current index and normalize them.
+          const requestedHash = readRequestedHash();
+          const requestedTranscript = requestedHash
+            ? findTranscriptByHashPrefix(requestedHash)
+            : null;
+          const initialTranscript = requestedTranscript || transcriptList[0];
+
+          await loadTranscript(initialTranscript, { replaceHash: true });
         } catch (error) {
           const message = error instanceof Error ? error.message : "Unknown error";
           setStatus("Could not load transcript list: " + message, true);
