@@ -88,9 +88,9 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 	imageRepo := awsecr.Repository_FromRepositoryName(stack, jsii.String("LambdaImageRepo"), jsii.String(imageRepoName))
 	siteBucket := awss3.Bucket_FromBucketArn(stack, jsii.String("DebugJoisDevSiteBucket"), jsii.String(siteBucketARN))
 
-	githubOidcProvider := awsiam.NewOpenIdConnectProvider(stack, jsii.String("GitHubOidcProvider"), &awsiam.OpenIdConnectProviderProps{
-		Url:       jsii.String("https://token.actions.githubusercontent.com"),
-		ClientIds: jsii.Strings("sts.amazonaws.com"),
+	githubOidcProvider := awsiam.NewCfnOIDCProvider(stack, jsii.String("GitHubOidcProvider"), &awsiam.CfnOIDCProviderProps{
+		Url:          jsii.String("https://token.actions.githubusercontent.com"),
+		ClientIdList: jsii.Strings("sts.amazonaws.com"),
 	})
 
 	githubActionsRole := awsiam.NewRole(stack, jsii.String("GitHubActionsDeployRole"), &awsiam.RoleProps{
@@ -153,7 +153,7 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 		ApiName: jsii.String("debugjois-dev-api"),
 		CorsPreflight: &awsapigatewayv2.CorsPreflightOptions{
 			AllowOrigins: jsii.Strings("*"),
-			AllowHeaders: jsii.Strings("Content-Type", "X-Amz-Date", "Authorization", "X-Api-Key", "X-Amz-Security-Token"),
+			AllowHeaders: jsii.Strings("content-type", "x-amz-date", "authorization", "x-api-key", "x-amz-security-token"),
 			AllowMethods: &[]awsapigatewayv2.CorsHttpMethod{
 				awsapigatewayv2.CorsHttpMethod_GET,
 				awsapigatewayv2.CorsHttpMethod_POST,
@@ -248,7 +248,8 @@ func main() {
 
 	NewInfraStack(app, stackName, &InfraStackProps{
 		StackProps: awscdk.StackProps{
-			Env: env(),
+			Env:         env(),
+			Synthesizer: awscdk.NewLegacyStackSynthesizer(),
 		},
 		ImageURI: *imageURI,
 	})
