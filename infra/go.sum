@@ -39,6 +39,7 @@ github.com/aws/constructs-go/constructs/v10 v10.6.0/go.mod h1:/OFJ5HMGSjXyjQ4mNz
 github.com/aws/jsii-runtime-go v1.128.0 h1:RsJY4o/wBO708CKhWib4v8nVicXA+FuRtfd4hxxxFl8=
 github.com/aws/jsii-runtime-go v1.128.0/go.mod h1:jjon7Di1fddrbl9Cvu+hXYNos/FSIObOgJgSucxWGhs=
 github.com/aws/smithy-go v1.24.3 h1:XgOAaUgx+HhVBoP4v8n6HCQoTRDhoMghKqw4LNHsDNg=
+github.com/aws/smithy-go v1.24.3/go.mod h1:YE2RhdIuDbA5E5bTdciG9KrW3+TiEONeUWCqxX9i1Fc=
 github.com/cdklabs/awscdk-asset-awscli-go/awscliv1/v2 v2.2.273 h1:wFlYbk2NsBLXdToVoLe+BoOBzqYOEGvSc3fIurb/OWQ=
 github.com/cdklabs/awscdk-asset-awscli-go/awscliv1/v2 v2.2.273/go.mod h1:ZxUAw5ZFmnTmJZCzXAhovthmd8xUf3TstT9gRXU54Go=
 github.com/cdklabs/awscdk-asset-node-proxy-agent-go/nodeproxyagentv6/v2 v2.1.1 h1:qYRuYGUp/84mhbCl52EbURK01Z+AkAMIF3NZo4pQ+bI=
