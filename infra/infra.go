@@ -249,7 +249,7 @@ func main() {
 	NewInfraStack(app, stackName, &InfraStackProps{
 		StackProps: awscdk.StackProps{
 			Env:         env(),
-			Synthesizer: awscdk.NewLegacyStackSynthesizer(),
+			Synthesizer: NewNoAssumeRoleSynthesizer(nil),
 		},
 		ImageURI: *imageURI,
 	})

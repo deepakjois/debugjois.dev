@@ -5,7 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INFRA_DIR="${SCRIPT_DIR}"
 BUILD_SCRIPT="${SCRIPT_DIR}/../backend/build-and-push-image.sh"
-DEFAULT_APP_COMMAND="go mod download && go run infra.go"
+DEFAULT_APP_COMMAND="go mod download && go run ."
 BUILD_IMAGE=0
 DEPLOY_ARGS=()
 
