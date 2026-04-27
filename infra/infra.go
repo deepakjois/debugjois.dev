@@ -92,6 +92,7 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 		Url:          jsii.String("https://token.actions.githubusercontent.com"),
 		ClientIdList: jsii.Strings("sts.amazonaws.com"),
 	})
+	githubOidcProvider.ApplyRemovalPolicy(awscdk.RemovalPolicy_RETAIN, nil)
 
 	githubActionsRole := awsiam.NewRole(stack, jsii.String("GitHubActionsDeployRole"), &awsiam.RoleProps{
 		RoleName: jsii.String("debugjois-dev-github-actions-role"),
