@@ -24,19 +24,19 @@ import (
 	"github.com/aws/jsii-runtime-go"
 )
 
-type InfraStackProps struct {
+type DebugjoisDevStackProps struct {
 	awscdk.StackProps
 	ImageURI string
 }
 
 const (
-	stackName                   = "InfraStack"
+	stackName                   = "DebugjoisDevStack"
 	linkPreviewAPIKeySecretName = "debugjois-dev/linkpreview-api-key"
 	deepgramAPIKeySecretName    = "debugjois-dev/deepgram-api-key"
 	siteBucketARN               = "arn:aws:s3:::debugjois-dev-site"
 )
 
-func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps) awscdk.Stack {
+func NewDebugjoisDevStack(scope constructs.Construct, id string, props *DebugjoisDevStackProps) awscdk.Stack {
 	var sprops awscdk.StackProps
 	imageURI := ""
 	if props != nil {
@@ -68,6 +68,28 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 	})
 	deepgramAPIKeySecret.ApplyRemovalPolicy(awscdk.RemovalPolicy_DESTROY, nil)
 
+	githubOidcProvider := awsiam.NewCfnOIDCProvider(stack, jsii.String("GitHubOidcProvider"), &awsiam.CfnOIDCProviderProps{
+		Url:          jsii.String("https://token.actions.githubusercontent.com"),
+		ClientIdList: jsii.Strings("sts.amazonaws.com"),
+	})
+
+	githubActionsRole := awsiam.NewRole(stack, jsii.String("GitHubActionsDeployRole"), &awsiam.RoleProps{
+		RoleName: jsii.String("debugjois-dev-github-actions-role"),
+		Description: jsii.String(
+			"Role assumed by GitHub Actions via OIDC for debugjois.dev backend deployments",
+		),
+		AssumedBy: awsiam.NewOpenIdConnectPrincipal(githubOidcProvider, &map[string]interface{}{
+			"StringEquals": map[string]interface{}{
+				"token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+				"token.actions.githubusercontent.com:sub": "repo:deepakjois/debugjois.dev:ref:refs/heads/main",
+			},
+		}),
+		ManagedPolicies: &[]awsiam.IManagedPolicy{
+			awsiam.ManagedPolicy_FromAwsManagedPolicyName(jsii.String("AdministratorAccess")),
+		},
+		MaxSessionDuration: awscdk.Duration_Hours(jsii.Number(1)),
+	})
+
 	linkPreviewAPIKeySecretRef := awssecretsmanager.Secret_FromSecretCompleteArn(
 		stack,
 		jsii.String("LinkPreviewAPIKeySecretRef"),
@@ -87,29 +109,6 @@ func NewInfraStack(scope constructs.Construct, id string, props *InfraStackProps
 
 	imageRepo := awsecr.Repository_FromRepositoryName(stack, jsii.String("LambdaImageRepo"), jsii.String(imageRepoName))
 	siteBucket := awss3.Bucket_FromBucketArn(stack, jsii.String("DebugJoisDevSiteBucket"), jsii.String(siteBucketARN))
-
-	githubOidcProvider := awsiam.NewCfnOIDCProvider(stack, jsii.String("GitHubOidcProvider"), &awsiam.CfnOIDCProviderProps{
-		Url:          jsii.String("https://token.actions.githubusercontent.com"),
-		ClientIdList: jsii.Strings("sts.amazonaws.com"),
-	})
-	githubOidcProvider.ApplyRemovalPolicy(awscdk.RemovalPolicy_RETAIN, nil)
-
-	githubActionsRole := awsiam.NewRole(stack, jsii.String("GitHubActionsDeployRole"), &awsiam.RoleProps{
-		RoleName: jsii.String("debugjois-dev-github-actions-role"),
-		Description: jsii.String(
-			"Role assumed by GitHub Actions via OIDC for debugjois.dev backend deployments",
-		),
-		AssumedBy: awsiam.NewOpenIdConnectPrincipal(githubOidcProvider, &map[string]interface{}{
-			"StringEquals": map[string]interface{}{
-				"token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-				"token.actions.githubusercontent.com:sub": "repo:deepakjois/debugjois.dev:ref:refs/heads/main",
-			},
-		}),
-		ManagedPolicies: &[]awsiam.IManagedPolicy{
-			awsiam.ManagedPolicy_FromAwsManagedPolicyName(jsii.String("AdministratorAccess")),
-		},
-		MaxSessionDuration: awscdk.Duration_Hours(jsii.Number(1)),
-	})
 
 	// Create Lambda function from the Docker image asset
 	fn := awslambda.NewDockerImageFunction(stack, jsii.String("DebugJoisDevLambda"), &awslambda.DockerImageFunctionProps{
@@ -247,7 +246,7 @@ func main() {
 
 	app := awscdk.NewApp(nil)
 
-	NewInfraStack(app, stackName, &InfraStackProps{
+	NewDebugjoisDevStack(app, stackName, &DebugjoisDevStackProps{
 		StackProps: awscdk.StackProps{
 			Env:         env(),
 			Synthesizer: NewNoAssumeRoleSynthesizer(nil),
