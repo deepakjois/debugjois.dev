@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MODULES=("site" "backend/api" "infra")
+MODULES=("site")
 
 # Capture upgrade reports and apply upgrades
 for module in "${MODULES[@]}"; do

@@ -17,10 +17,7 @@ jobs:
         with:
           go-version-file: 'go.work'
           cache: true
-          cache-dependency-path: |
-            site/go.sum
-            backend/api/go.sum
-            infra/go.sum
+          cache-dependency-path: site/go.sum
 
       - name: Install gomajor
         run: go install github.com/icholy/gomajor@latest

@@ -18,10 +18,7 @@ jobs:
         with:
           go-version-file: 'go.work'
           cache: true
-          cache-dependency-path: |
-            site/go.sum
-            backend/api/go.sum
-            infra/go.sum
+          cache-dependency-path: site/go.sum
 
       - name: Install go-mod-upgrade
         run: go install github.com/oligot/go-mod-upgrade@latest
@@ -37,28 +34,9 @@ jobs:
           version: latest
           working-directory: site
 
-      - name: Run golangci-lint (backend/api)
-        if: steps.upgrades.outputs.has_updates == 'true'
-        uses: golangci/golangci-lint-action@v9.2.0
-        with:
-          version: latest
-          working-directory: backend/api
-
-      - name: Run golangci-lint (infra)
-        if: steps.upgrades.outputs.has_updates == 'true'
-        uses: golangci/golangci-lint-action@v9.2.0
-        with:
-          version: latest
-          working-directory: infra
-
       - name: Run tests (site)
         if: steps.upgrades.outputs.has_updates == 'true'
         working-directory: site
-        run: go test ./...
-
-      - name: Run tests (backend/api)
-        if: steps.upgrades.outputs.has_updates == 'true'
-        working-directory: backend/api
         run: go test ./...
 
       - name: Create Pull Request

@@ -2,12 +2,7 @@
 
 ## Project Overview
 
-This repository is a monorepo for `debugjois.dev`. It contains:
-
-- a Go static site generator in `site/`
-- a Go backend API in `backend/api/`
-- AWS CDK infrastructure in `infra/`
-- a React frontend in `frontend/`
+This repository contains the Go static site generator and content for `debugjois.dev`.
 
 ## Repository Structure
 
@@ -15,39 +10,33 @@ This repository is a monorepo for `debugjois.dev`. It contains:
 site/                       # Go static site generator
   content/                  # Source content, including daily notes
   templates/                # HTML templates
-  static/                   # Static assets
-backend/
-  api/                      # Go HTTP API / Lambda handler
-  build-and-push-image.sh   # Build and push backend container image
-infra/                      # AWS CDK app and deploy script
-  cloudfront/               # CloudFront Function source files
-frontend/                   # Vite apps for /apps
+  static/                   # Static assets copied into the build output
+  cloudfront/               # CloudFront Function source and deploy notes
 .github/
-  actions/
-  workflows/
+  actions/                  # Reusable site workflow actions
+  workflows/                # Site CI/deploy workflows
 ```
 
 ## Version Control
 
-This repo is hosted in Github, but locally uses [Jujutsu (`jj`)](https://github.com/jj-vcs/jj) for version control. If a `.jj/` directory is present at the root, use `jj` commands for committing, branching, and history operations. Otherwise, fall back to `git`. If it is jj repo, it is most likely a workspace, in which case the colocated git repo is in the default workspace.
+This repo is hosted in GitHub, but locally uses [Jujutsu (`jj`)](https://github.com/jj-vcs/jj) for version control. If a `.jj/` directory is present at the root, use `jj` commands for committing, branching, and history operations. Otherwise, fall back to `git`.
 
 ## Go Workspace
 
-The repo uses a top-level `go.work` file that includes:
+The repo uses a top-level `go.work` file that includes only:
 
 - `./site`
-- `./backend/api`
-- `./infra`
 
 Use the latest Go version available.
 
 ### Source Code Conventions
+
 Use the code conventions of the Go standard library source code. As far as possible and unless specified otherwise minimize third party dependencies.
 
 ### Workflow
 
-- After making changes in any Go module, run `golangci-lint run` from that module directory.
-- The repo-level `.golangci.yml` enables `gofumpt`, `staticcheck`, `govet`, and `ineffassign` for all Go code in `site/`, `backend/api/`, and `infra/`.
+- After making changes in `site/`, run `golangci-lint run` from `site/`.
+- The repo-level `.golangci.yml` enables `gofumpt`, `staticcheck`, `govet`, and `ineffassign` for Go code.
 - Do not add separate `go fmt` or `go vet` checks unless there is a specific reason; `golangci-lint` is the source of truth for Go formatting and linting here.
 
 ## Site
@@ -72,82 +61,6 @@ Run all site commands from `site/`.
 - `./debugjois-site build-newsletter --post --notify` - post and notify via Resend
 - `go test ./...` - run all site tests
 
-## Backend API
+## CloudFront Function
 
-The backend API lives in `backend/api/` and is written in Go.
-
-### Common commands
-
-Run these from `backend/api/`:
-
-- `go run . serve` - start the local server on `http://localhost:8000`
-- `PORT=9000 go run . serve` - override the local port
-- `printf '{"action":"health-check"}' | go run . invoke` - invoke the shared backend event handler with event JSON from stdin
-- `go run . invoke --payload event.json` - invoke the shared backend event handler with event JSON from a file
-- `printf '%s\n' 'https://podcastaddict.com/example/episode/123' | go run ./cmd/podcast-transcribe` - parse a Podcast Addict episode URL and transcribe the episode audio with Deepgram; prefer piping via stdin instead of passing the text as a positional argument so Markdown share text and multiline payloads do not need shell escaping
-- `printf '%s\n' '[Podcast Name] Episode Title
-https://podcastaddict.com/example/episode/123 via @PodcastAddict' | go run ./cmd/podcast-transcribe --write` - transcribe and also persist the transcript JSON to S3; prefer stdin piping for all share text, including Markdown links
-- `go test ./...` - run backend tests
-- `go build .` - build the binary
-
-## Infrastructure
-
-The CDK app lives in `infra/`.
-
-### Common commands
-
-Run these from `infra/` unless the command already includes the path:
-
-- `cdk diff` - preview infrastructure changes
-- `cdk --app 'go mod download && go run infra.go --image-uri <ecr-image-uri-or-digest>' deploy --require-approval never` - deploy with an explicit image
-- `cdk synth` - synthesize the CloudFormation template
-- `./infra/deploy.sh` - deploy using the image currently configured on the deployed Lambda
-- `./infra/deploy.sh --build-image` - build and push a new image first, then deploy
-
-## Frontend
-
-The frontend lives in `frontend/` and builds multiple Vite apps under `/apps`, including the authenticated SPA under `/apps/spa`.
-
-### Commands
-
-Run these from `frontend/`:
-
-- `npm run dev` - start the dev server at `http://localhost:5173/apps/spa/`
-- `npm run dev:prod-env` - dev server using production env vars
-- `npm run build` - build to `../site/build/apps/`
-- `npm run preview` - preview the production build locally
-- `npm test` - run tests once
-- `npm run test:watch` - run tests in watch mode
-- `npm run test:coverage` - generate coverage output
-- `npm run lint` - run oxlint
-- `npm run lint:fix` - auto-fix linting issues
-- `npm run fmt` - format with oxfmt
-- `npm run fmt:check` - check formatting without writing
-
-### Workflow
-
-After every set of frontend edits, always run these steps in order — no exceptions, even for small changes:
-
-1. `npm run fmt` — format all files (must run first; reformats code in place)
-2. `npm run lint` — check for lint errors
-3. `npm run build` — default final check for frontend TypeScript changes; this runs `tsc -b` and catches type errors that tests and lint can miss
-4. `npm test` — also run when the change affects runtime behavior, component behavior, routing behavior, or test-covered functionality
-
-### Configuration
-
-- Vite `base` is `/apps/`
-- TanStack Router `basepath` is `/apps/spa`
-- Copy `frontend/.env.example` to `frontend/.env` as a starting point
-
-### Local full-stack development
-
-```bash
-# Terminal 1
-cd backend/api && go run . serve
-
-# Terminal 2
-cd frontend && npm run dev
-```
-
-### Github Actions Convention
-- Keep workflow YAML files declarative. Do not inline multiline or complex bash in `run:` blocks — extract any non-trivial shell logic into a script under `.github/scripts/` and call it from the workflow step.
+The source for the live CloudFront Function is in `site/cloudfront/domain-redirect-debugjois-dev.js`. See `site/cloudfront/README.md` for deploy commands.

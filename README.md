@@ -1,34 +1,39 @@
 # debugjois.dev
 
-Monorepo for [debugjois.dev](https://debugjois.dev) and frontend apps under `/apps`.
+Static site generator and content for [debugjois.dev](https://debugjois.dev).
 
 ## Layout
 
 - `site/` - Go static site generator for the main website and daily log
-- `backend/api/` - Go HTTP API that also runs as an AWS Lambda
-- `backend/build-and-push-image.sh` - builds and pushes the Lambda image
-- `infra/` - AWS CDK app and deploy script for backend infrastructure
-- `frontend/` - Vite frontend apps served under `/apps`
+- `site/content/` - source content, including daily notes
+- `site/templates/` - HTML templates
+- `site/static/` - static assets copied into the build output
+- `site/cloudfront/` - source and deploy notes for the live CloudFront Function
 
 ## Workspace
 
-Go code is split across `site/`, `backend/api/`, and `infra/`, with a shared
-workspace in `go.work`. All Go modules use Go `1.26.1`.
+The Go workspace in `go.work` includes only `./site`.
 
 ## Common commands
 
-- Site: `cd site && go build -o debugjois-site . && ./debugjois-site build`
-- Backend API: `cd backend/api && go test ./... && go run . serve`
-- Backend invoke: `cd backend/api && printf '{"action":"health-check"}' | go run . invoke`
-- Frontend: `cd frontend && npm install && npm run dev`
-- Infra deploy: `./infra/deploy.sh`
-- Infra deploy with fresh image: `./infra/deploy.sh --build-image`
+Run from `site/` unless noted otherwise:
 
-## Backend local usage
+- `go build -o debugjois-site .` - build the site binary
+- `./debugjois-site build` - build the static site into `build/`
+- `./debugjois-site build --dev` - include drafts and scratch content
+- `./debugjois-site build --rebuild` - rebuild the entire archive
+- `./debugjois-site sync-notes-obsidian` - sync daily notes from Google Drive shared drive
+- `./debugjois-site commit-notes` - commit daily note changes
+- `./debugjois-site commit-notes --skip-ci` - commit with `[skip ci]` appended to the message
+- `./debugjois-site upload` - upload generated files to S3
+- `./debugjois-site upload --dryrun` - preview upload without writing to S3
+- `./debugjois-site build-newsletter` - preview the weekly newsletter
+- `./debugjois-site build-newsletter --post` - post newsletter draft to Buttondown
+- `./debugjois-site build-newsletter --post --notify` - post and notify via Resend
+- `go test ./...` - run site tests
+- `golangci-lint run` - run the configured Go lint/format checks
 
-- Start the local API server: `cd backend/api && go run . serve`
-- Invoke the shared event handler with JSON from stdin: `cd backend/api && printf '{"action":"health-check"}' | go run . invoke`
-- Invoke with a payload file: `cd backend/api && go run . invoke --payload event.json`
-- Transcribe a Podcast Addict episode by piping the share text or URL over stdin: `cd backend/api && printf '%s\n' 'https://podcastaddict.com/example/episode/123' | go run ./cmd/podcast-transcribe`
-- Prefer stdin piping over positional arguments for `podcast-transcribe`, especially for Markdown-formatted or multiline share text, to avoid shell quoting issues
-- `invoke` rejects API Gateway request events locally; use `serve` and send the request over HTTP instead
+## Deployments
+
+- Site deploys are handled by the site GitHub workflows and `./debugjois-site upload`.
+- CloudFront Function source is tracked in `site/cloudfront/`; see `site/cloudfront/README.md` for manual deploy commands.
