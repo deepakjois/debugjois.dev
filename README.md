@@ -54,21 +54,11 @@ REPO=deepakjois/debugjois.dev
 ROLE_NAME=debugjois-dev-site-github-actions-role
 BUCKET=debugjois-dev-site
 
-# AWS IAM requires the SHA-1 thumbprint for the top certificate in the OIDC
-# server chain. This derives it from the live GitHub Actions OIDC endpoint.
-THUMBPRINT=$(openssl s_client \
-  -servername token.actions.githubusercontent.com \
-  -showcerts \
-  -connect token.actions.githubusercontent.com:443 </dev/null 2>/dev/null \
-  | awk '/BEGIN CERTIFICATE/{cert=""} {cert=cert $0 "\n"} /END CERTIFICATE/{last=cert} END{printf "%s", last}' \
-  | openssl x509 -fingerprint -noout -sha1 \
-  | cut -d= -f2 \
-  | tr -d ':')
-
+# IAM can retrieve the GitHub Actions OIDC thumbprint automatically. If the
+# provider already exists, this command fails harmlessly with EntityAlreadyExists.
 aws iam create-open-id-connect-provider \
   --url https://token.actions.githubusercontent.com \
-  --client-id-list sts.amazonaws.com \
-  --thumbprint-list "$THUMBPRINT"
+  --client-id-list sts.amazonaws.com
 
 cat > /tmp/debugjois-dev-site-github-actions-trust.json <<EOF_TRUST
 {
