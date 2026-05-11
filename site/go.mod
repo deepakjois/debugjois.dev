@@ -6,7 +6,7 @@ require (
 	github.com/alecthomas/kong v1.15.0
 	github.com/aws/aws-sdk-go-v2 v1.41.7
 	github.com/aws/aws-sdk-go-v2/config v1.32.17
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.100.1
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.101.0
 	github.com/bitfield/script v0.24.1
 	github.com/gorilla/feeds v1.2.0
 	github.com/matthalp/go-meridian/v2 v2.0.0
@@ -16,7 +16,7 @@ require (
 	github.com/yuin/goldmark v1.8.2
 	go.abhg.dev/goldmark/hashtag v0.4.0
 	golang.org/x/oauth2 v0.36.0
-	google.golang.org/api v0.277.0
+	google.golang.org/api v0.278.0
 )
 
 require (
