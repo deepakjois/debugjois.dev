@@ -16,7 +16,7 @@ require (
 	github.com/yuin/goldmark v1.8.2
 	go.abhg.dev/goldmark/hashtag v0.4.0
 	golang.org/x/oauth2 v0.36.0
-	google.golang.org/api v0.278.0
+	google.golang.org/api v0.279.0
 )
 
 require (
