@@ -29,7 +29,7 @@ jobs:
 
       - name: Run golangci-lint (site)
         if: steps.upgrades.outputs.has_updates == 'true'
-        uses: golangci/golangci-lint-action@v9.2.0
+        uses: golangci/golangci-lint-action@v9.2.1
         with:
           version: latest
           working-directory: site
