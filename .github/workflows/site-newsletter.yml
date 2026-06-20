@@ -15,7 +15,7 @@ jobs:
         working-directory: site
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - uses: ./.github/actions/site-setup-and-build
 
