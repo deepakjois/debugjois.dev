@@ -6,17 +6,17 @@ require (
 	github.com/alecthomas/kong v1.15.0
 	github.com/aws/aws-sdk-go-v2 v1.42.0
 	github.com/aws/aws-sdk-go-v2/config v1.32.25
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.103.3
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.104.0
 	github.com/bitfield/script v0.24.3
 	github.com/gorilla/feeds v1.2.0
 	github.com/matthalp/go-meridian/v2 v2.0.0
 	github.com/otiai10/copy v1.14.1
-	github.com/resend/resend-go/v3 v3.7.0
+	github.com/resend/resend-go/v3 v3.9.2
 	github.com/samber/lo v1.53.0
 	github.com/yuin/goldmark v1.8.2
 	go.abhg.dev/goldmark/hashtag v0.4.0
 	golang.org/x/oauth2 v0.36.0
-	google.golang.org/api v0.284.0
+	google.golang.org/api v0.285.0
 )
 
 require (
@@ -56,12 +56,12 @@ require (
 	go.opentelemetry.io/otel v1.43.0 // indirect
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
-	golang.org/x/crypto v0.51.0 // indirect
-	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/crypto v0.53.0 // indirect
+	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
+	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260610212136-7ab31c22f7ad // indirect
 	google.golang.org/grpc v1.81.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	mvdan.cc/sh/v3 v3.12.0 // indirect
