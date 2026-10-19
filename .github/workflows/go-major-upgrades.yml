@@ -2,7 +2,7 @@ name: Go Major Version Upgrades
 
 on:
   schedule:
-    - cron: '30 10 1 * *'
+    - cron: '30 10 * * 1'
   workflow_dispatch:
 
 jobs:
@@ -26,9 +26,9 @@ jobs:
         id: upgrades
         run: .github/scripts/go-major-upgrades.sh
 
-      - name: Create or update issue
-        if: steps.upgrades.outputs.has_upgrades == 'true'
+      - name: Sync tracking issue
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HAS_UPGRADES: ${{ steps.upgrades.outputs.has_upgrades }}
           UPGRADE_BODY: ${{ steps.upgrades.outputs.body }}
         run: .github/scripts/go-major-upgrades-issue.sh

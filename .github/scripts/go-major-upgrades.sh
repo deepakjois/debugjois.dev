@@ -4,10 +4,21 @@ set -euo pipefail
 MODULES=("site")
 
 body=""
+# Captures gomajor stderr for each module
+err_file=$(mktemp)
 
 for module in "${MODULES[@]}"; do
   echo "Checking major version upgrades in ${module}..."
-  output=$(cd "$module" && GOWORK=off gomajor list 2>/dev/null) || true
+  # -major limits output to new major versions; without it gomajor also lists
+  # minor and patch updates, which go-dep-upgrades already handles.
+  # gomajor exits 0 even when proxy lookups fail and only reports them on
+  # stderr, so fail here rather than treat a failed lookup as "no upgrades"
+  # (which would close the tracking issue).
+  output=$(cd "$module" && GOWORK=off gomajor list -major 2>"$err_file")
+  if grep -q 'failed:' "$err_file"; then
+    cat "$err_file" >&2
+    exit 1
+  fi
 
   if [ -n "$output" ]; then
     body+="### \`${module}\`"$'\n\n'
