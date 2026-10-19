@@ -3,13 +3,31 @@ set -euo pipefail
 
 MODULES=("site")
 
+# Major version bumps change import paths and APIs, so they are left to the
+# separate go-major-upgrades workflow, which files an issue instead.
+upgrade_module() {
+  (cd "$1" && git checkout -- go.mod go.sum && GOWORK=off go-mod-upgrade --force --no-major && go mod tidy)
+}
+
+# Retry a command up to 3 times. The Go module proxy occasionally resets
+# connections mid-request (HTTP/2 INTERNAL_ERROR), which is transient.
+retry() {
+  local attempt
+  for attempt in 1 2 3; do
+    "$@" && return 0
+    echo "Attempt ${attempt} of $* failed." >&2
+    [ "$attempt" -lt 3 ] && sleep $((attempt * 15))
+  done
+  return 1
+}
+
 # Capture upgrade reports and apply upgrades
 for module in "${MODULES[@]}"; do
   label="${module//\//-}"
   echo "Checking upgrades in ${module}..."
-  (cd "$module" && GOWORK=off go-mod-upgrade --list) > "/tmp/${label}-upgrades.txt" 2>/dev/null || true
+  (cd "$module" && GOWORK=off go-mod-upgrade --list --no-major) > "/tmp/${label}-upgrades.txt" 2>/dev/null || true
   echo "Upgrading ${module}..."
-  (cd "$module" && GOWORK=off go-mod-upgrade --force && go mod tidy)
+  retry upgrade_module "$module"
 done
 
 # Sync workspace
