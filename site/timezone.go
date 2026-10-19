@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/matthalp/go-meridian/v2/timezones/cet"
+	"github.com/matthalp/go-meridian/v3/timezones/cet"
 )
 
 // AppTimezone represents the application's configured timezone.
