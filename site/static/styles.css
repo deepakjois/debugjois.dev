@@ -12,6 +12,7 @@ body {
     margin: 0;
     padding: 0;
     text-wrap: pretty;
+    overflow-wrap: break-word;
   }
 
 main {
@@ -22,12 +23,14 @@ main {
 
 .intro {
     display: flex;
+    align-items: flex-start;
 }
 
 img.avatar {
     display: block;
     width:200px;
-    height:200px;
+    height:auto;
+    min-width: 0;
 }
 
 img:not(.avatar) {
@@ -168,6 +171,9 @@ blockquote {
 
 .youtube-video {
     display: block;
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
     margin-left: auto;
     margin-right: auto;
     justify-content: center;
