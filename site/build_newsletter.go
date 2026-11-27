@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/resend/resend-go/v4"
+	lo "github.com/samber/lo"
 )
 
 type BuildNewsletterCmd struct {
@@ -207,16 +209,111 @@ func processFiles(files []string) (string, error) {
 	return content.String(), nil
 }
 
+var (
+	// embedRegex matches an image at the start of a line, such as a YouTube
+	// video or tweet: ![alt](url) followed by optional text.
+	embedRegex = regexp.MustCompile(`(?m)^!\[([^\]]*)\]\(([^)\s]+)\)[ \t]*(.*)$`)
+
+	// obsidianImageRegex matches an Obsidian image embed: ![[file.png]]
+	obsidianImageRegex = regexp.MustCompile(`!\[\[(.+?)\]\]`)
+)
+
+// transformMarkdown converts a daily note to Buttondown's Markdown, which is
+// Python-Markdown: https://docs.buttondown.com/using-markdown
 func transformMarkdown(content string) string {
-	// Strip image syntax from embeds
-	embedRegex := regexp.MustCompile(`!\[]\((.*)\)`)
-	content = embedRegex.ReplaceAllString(content, "$1")
+	// Buttondown embeds images, videos and tweets from a URL alone on its
+	// line, so put the URL on its own paragraph, with the alt text (shown on
+	// the site next to the embed) and any text after it in their own.
+	content = embedRegex.ReplaceAllStringFunc(content, func(s string) string {
+		m := embedRegex.FindStringSubmatch(s)
+		rest := m[3]
+		if strings.HasPrefix(rest, "#") {
+			// Python-Markdown reads a line starting with # as a heading,
+			// even without a space, so escape a leading hashtag.
+			rest = `\` + rest
+		}
+		return strings.Join(lo.Compact([]string{m[1], m[2], rest}), "\n\n")
+	})
 
-	// Replace Obsidian image embeds
-	obsidianImageRegex := regexp.MustCompile(`!\[\[(.+)\]\]`)
-	content = obsidianImageRegex.ReplaceAllString(content, "![](https://debugjois.dev/images/$1)")
+	content = obsidianImageRegex.ReplaceAllStringFunc(content, func(s string) string {
+		name := obsidianImageRegex.FindStringSubmatch(s)[1]
+		return "![](https://debugjois.dev/images/" + url.PathEscape(name) + ")"
+	})
 
-	return content
+	return transformMath(content)
+}
+
+// transformMath rewrites $$ display math, written as in the site's math
+// extension (see math.go), as Buttondown LaTeX blocks. Buttondown has no
+// inline math, so $...$ is left as written.
+func transformMath(content string) string {
+	lines := strings.Split(content, "\n")
+	var out []string
+	for i := 0; i < len(lines); i++ {
+		depth, rest := splitQuote(lines[i])
+		rest = strings.TrimSpace(rest)
+		var tex []string
+		end := -1
+		switch {
+		case rest == "$$":
+			for j := i + 1; j < len(lines) && end < 0; j++ {
+				d, r := splitQuote(lines[j])
+				if d != depth {
+					break
+				}
+				r = strings.TrimSpace(r)
+				before, closed := strings.CutSuffix(r, "$$")
+				tex = append(tex, before)
+				if closed {
+					end = j
+				}
+			}
+		case len(rest) > 4 && strings.HasPrefix(rest, "$$") && strings.HasSuffix(rest, "$$") &&
+			!strings.Contains(rest[2:len(rest)-2], "$$"):
+			tex, end = []string{rest[2 : len(rest)-2]}, i
+		}
+		if end < 0 {
+			out = append(out, lines[i])
+			continue
+		}
+		prefix := strings.TrimSpace(strings.Repeat("> ", depth))
+		div := buttondownMath(strings.Join(tex, " "), depth > 0)
+		out = append(out, prefix, strings.TrimSpace(prefix+" "+div), prefix)
+		i = end
+	}
+	return strings.Join(out, "\n")
+}
+
+// splitQuote returns the blockquote depth of a line and the rest of it.
+func splitQuote(line string) (depth int, rest string) {
+	for {
+		trimmed := strings.TrimLeft(line, " \t")
+		if !strings.HasPrefix(trimmed, ">") {
+			return depth, line
+		}
+		depth++
+		line = trimmed[1:]
+	}
+}
+
+// buttondownMath returns a Buttondown LaTeX block for tex. Python-Markdown
+// keeps an HTML block as written only outside blockquotes; inside one, it
+// processes the block's text as Markdown, so the TeX is backslash-escaped to
+// come out as written.
+func buttondownMath(tex string, quoted bool) string {
+	// A bare < or > would be read as HTML.
+	tex = strings.NewReplacer("<", `\lt `, ">", `\gt `).Replace(tex)
+	if quoted {
+		var b strings.Builder
+		for _, r := range tex {
+			if strings.ContainsRune("\\`*_{}[]()#+-.!'\"", r) {
+				b.WriteByte('\\')
+			}
+			b.WriteRune(r)
+		}
+		tex = b.String()
+	}
+	return "<div class='buttondown-block-math'>" + strings.TrimSpace(tex) + "</div>"
 }
 
 // sendNotificationEmail sends a notification email using Resend API after the newsletter has been posted

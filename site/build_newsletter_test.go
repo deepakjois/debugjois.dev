@@ -205,3 +205,44 @@ func TestCalculateNewsletterWeek_WeekNumberFromMondayNotSunday(t *testing.T) {
 		t.Errorf("WeekNum = %d, want 1 (should use Monday's week number, not Sunday's)", result.WeekNum)
 	}
 }
+
+func TestTransformMarkdown(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "embed with alt text and trailing hashtags",
+			input: "![Title](https://www.youtube.com/watch?v=abc) #ai\nnext",
+			want:  "Title\n\nhttps://www.youtube.com/watch?v=abc\n\n\\#ai\nnext",
+		},
+		{
+			name:  "obsidian images on one line with spaces",
+			input: "![[Pasted image 1.png]] ![[b.png]]",
+			want:  "![](https://debugjois.dev/images/Pasted%20image%201.png) ![](https://debugjois.dev/images/b.png)",
+		},
+		{
+			name:  "math block",
+			input: "Roughly:\n$$\n a < b\n$$\nafter",
+			want:  "Roughly:\n\n<div class='buttondown-block-math'>a \\lt  b</div>\n\nafter",
+		},
+		{
+			name:  "math block in blockquote is escaped for Markdown",
+			input: "> $$\n> f'(x) = \\{a_i\\}\n> $$",
+			want:  ">\n> <div class='buttondown-block-math'>f\\'\\(x\\) = \\\\\\{a\\_i\\\\\\}</div>\n>",
+		},
+		{
+			name:  "unterminated math block and inline math are left alone",
+			input: "$$\nx $5 and $\\rho$",
+			want:  "$$\nx $5 and $\\rho$",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := transformMarkdown(tc.input); got != tc.want {
+				t.Errorf("transformMarkdown(%q)\ngot:  %q\nwant: %q", tc.input, got, tc.want)
+			}
+		})
+	}
+}
