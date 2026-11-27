@@ -33,6 +33,24 @@ done
 # Sync workspace
 go work sync
 
+# Bump the Go toolchain to the latest patch release of the pinned minor
+# version (e.g. 1.26.10 -> 1.26.11). Security fixes ship in Go patch
+# releases; picking them up here keeps the daily govulncheck job green
+# instead of leaving it failing until the pin is bumped by hand. Minor and
+# major toolchain jumps stay manual.
+toolchain_bump=""
+current_go=$(grep '^go ' go.work | awk '{print $2}')
+latest_go=$(retry curl -fsSL 'https://go.dev/dl/?mode=json' \
+  | jq -r --arg minor "${current_go%.*}" \
+      '.[].version | select(startswith("go" + $minor + "."))' \
+  | sort -V | tail -1 | sed 's/^go//')
+if [ -n "$latest_go" ] && [ "$latest_go" != "$current_go" ]; then
+  echo "Bumping Go toolchain from ${current_go} to ${latest_go}..."
+  go work edit -go="$latest_go"
+  (cd site && go mod edit -go="$latest_go")
+  toolchain_bump="$latest_go"
+fi
+
 # Check for changes
 if git diff --quiet; then
   echo "has_updates=false" >> "$GITHUB_OUTPUT"
@@ -53,6 +71,12 @@ EOF_MARKER=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
   echo "body<<$EOF_MARKER"
   echo "## Go Dependency Upgrades"
   echo ""
+  if [ -n "$toolchain_bump" ]; then
+    echo "### Go toolchain"
+    echo ""
+    echo "Bumped \`${current_go}\` -> \`${toolchain_bump}\` (latest patch release of the pinned minor version)."
+    echo ""
+  fi
   for module in "${MODULES[@]}"; do
     label="${module//\//-}"
     REPORT=$(clean_output "/tmp/${label}-upgrades.txt" | grep -v 'All modules are up to date')
