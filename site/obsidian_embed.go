@@ -1,163 +1,141 @@
 package main
 
 import (
-	"fmt"
+	"io"
 	"net/url"
 	"strings"
 
-	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/ast"
-	"github.com/yuin/goldmark/parser"
-	"github.com/yuin/goldmark/renderer"
-	"github.com/yuin/goldmark/text"
-	"github.com/yuin/goldmark/util"
+	"github.com/yuin/goldmark/v2/ast"
+	"github.com/yuin/goldmark/v2/parser"
+	"github.com/yuin/goldmark/v2/renderer"
+	"github.com/yuin/goldmark/v2/renderer/html"
+	"github.com/yuin/goldmark/v2/text"
+	"github.com/yuin/goldmark/v2/util"
 )
 
-// YouTube struct represents a YouTube Video embed of the Markdown text.
+// YouTube represents a YouTube video embedded with
+// ![](https://www.youtube.com/watch?v=...) or ![](https://youtu.be/...).
+// Its children are the image's alt text.
 type YouTube struct {
-	ast.Image
+	ast.BaseInline
 	Video string
 }
 
-// KindYouTube is a NodeKind of the YouTube node.
+// KindYouTube is the NodeKind of YouTube nodes.
 var KindYouTube = ast.NewNodeKind("YouTube")
 
-// Kind implements Node.Kind.
-func (n *YouTube) Kind() ast.NodeKind {
-	return KindYouTube
+// Kind implements ast.Node.
+func (n *YouTube) Kind() ast.NodeKind { return KindYouTube }
+
+// Dump implements ast.Node.
+func (n *YouTube) Dump(_ []byte) *ast.NodeDump {
+	return ast.NewNodeDump(n, map[string]any{"Video": n.Video})
 }
 
-// NewYouTube returns a new YouTube node.
-func NewYouTube(img *ast.Image, v string) *YouTube {
-	c := &YouTube{
-		Image: *img,
-		Video: v,
-	}
-	c.Destination = img.Destination
-	c.Title = img.Title
-
-	return c
-}
-
-// Twitter struct represents a Twitter/X embed of the Markdown text.
+// Twitter represents a Twitter/X post embedded with
+// ![](https://x.com/.../status/...). Its children are the image's alt text.
 type Twitter struct {
-	ast.Image
+	ast.BaseInline
 	TweetID string
 }
 
-// KindTwitter is a NodeKind of the Twitter node.
+// KindTwitter is the NodeKind of Twitter nodes.
 var KindTwitter = ast.NewNodeKind("Twitter")
 
-// Kind implements Node.Kind.
-func (n *Twitter) Kind() ast.NodeKind {
-	return KindTwitter
+// Kind implements ast.Node.
+func (n *Twitter) Kind() ast.NodeKind { return KindTwitter }
+
+// Dump implements ast.Node.
+func (n *Twitter) Dump(_ []byte) *ast.NodeDump {
+	return ast.NewNodeDump(n, map[string]any{"TweetID": n.TweetID})
 }
 
-// NewTwitter returns a new Twitter node.
-func NewTwitter(img *ast.Image, tweetID string) *Twitter {
-	c := &Twitter{
-		Image:   *img,
-		TweetID: tweetID,
-	}
-	c.Destination = img.Destination
-	c.Title = img.Title
+// embedTransformer replaces images that point to YouTube videos or tweets
+// with embeds.
+type embedTransformer struct{}
 
-	return c
-}
-
-type astTransformer struct{}
-
-var defaultASTTransformer = &astTransformer{}
-
-func (a *astTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
-	replaceImages := func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		if !entering {
-			return ast.WalkContinue, nil
+func (embedTransformer) Transform(doc *ast.Document, reader text.Reader, _ parser.Context) {
+	var images []*ast.Image
+	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if img, ok := n.(*ast.Image); ok && entering {
+			images = append(images, img)
 		}
-		if n.Kind() != ast.KindImage {
-			return ast.WalkContinue, nil
-		}
+		return ast.WalkContinue, nil
+	})
 
-		img, ok := n.(*ast.Image)
-		if !ok {
-			return ast.WalkContinue, nil
-		}
-
-		u, err := url.Parse(string(img.Destination))
+	for _, img := range images {
+		u, err := url.Parse(img.Destination.Value(reader.Source()))
 		if err != nil {
-			msg := ast.NewString(fmt.Appendf(nil, "<!-- %s -->", err))
-			msg.SetCode(true)
-			n.Parent().InsertAfter(n.Parent(), n, msg)
-			return ast.WalkContinue, nil
+			continue
 		}
-
+		var embed ast.Node
 		switch {
-		case u.Host == "www.youtube.com" && u.Path == "/watch":
+		case u.Host == "www.youtube.com" && u.Path == "/watch", u.Host == "youtu.be":
 			v := u.Query().Get("v")
+			if u.Host == "youtu.be" {
+				v = strings.TrimPrefix(u.Path, "/")
+			}
 			if v != "" {
-				yt := NewYouTube(img, v)
-				n.Parent().ReplaceChild(n.Parent(), n, yt)
+				yt := &YouTube{Video: v}
+				yt.Init(yt)
+				embed = yt
 			}
 		case u.Host == "twitter.com" || u.Host == "x.com":
 			parts := strings.Split(u.Path, "/")
 			if len(parts) >= 4 && parts[2] == "status" {
-				tw := NewTwitter(img, parts[3])
-				n.Parent().ReplaceChild(n.Parent(), n, tw)
+				tw := &Twitter{TweetID: parts[3]}
+				tw.Init(tw)
+				embed = tw
 			}
 		}
-
-		return ast.WalkContinue, nil
+		if embed != nil {
+			for img.HasChildren() {
+				embed.AppendChild(img.FirstChild())
+			}
+			img.Parent().ReplaceChild(img, embed)
+		}
 	}
-
-	ast.Walk(node, replaceImages)
 }
 
-// HTMLRenderer struct is a renderer.NodeRenderer implementation for the extension.
-type HTMLRenderer struct{}
+func newObsidianEmbedParser() parser.Extension { return obsidianEmbedParserExtension{} }
 
-// NewHTMLRenderer builds a new HTMLRenderer with given options and returns it.
-func NewHTMLRenderer() renderer.NodeRenderer {
-	r := &HTMLRenderer{}
-	return r
+type obsidianEmbedParserExtension struct{}
+
+func (obsidianEmbedParserExtension) ParserOptions(*parser.Config) []parser.Option {
+	return []parser.Option{
+		parser.WithASTTransformers(util.Prioritized[parser.ASTTransformer](embedTransformer{}, 500)),
+	}
 }
 
-// RegisterFuncs implements NodeRenderer.RegisterFuncs.
-func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
-	reg.Register(KindYouTube, r.renderYouTubeVideo)
-	reg.Register(KindTwitter, r.renderTwitterEmbed)
+func newObsidianEmbedHTMLRenderer() html.Extension { return obsidianEmbedHTMLRendererExtension{} }
+
+type obsidianEmbedHTMLRendererExtension struct{}
+
+func (obsidianEmbedHTMLRendererExtension) RendererOptions(*html.Config) []html.Option {
+	return []html.Option{
+		html.WithNodeRenderers(map[ast.NodeKind]html.NodeRenderer{
+			KindYouTube: html.NodeRendererFunc(renderYouTube),
+			KindTwitter: html.NodeRendererFunc(renderTwitter),
+		}),
+	}
 }
 
-func (r *HTMLRenderer) renderYouTubeVideo(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func renderYouTube(w io.Writer, _ []byte, node ast.Node, entering bool, rc renderer.Context) (ast.WalkStatus, error) {
 	if entering {
 		return ast.WalkContinue, nil
 	}
-
-	yt := node.(*YouTube)
-	w.Write([]byte(`<iframe width="560" height="315" class="youtube-video" src="https://www.youtube.com/embed/` + yt.Video + `" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`))
+	_, _ = io.WriteString(w, `<iframe width="560" height="315" class="youtube-video" src="https://www.youtube.com/embed/`)
+	_, _ = html.ContextTextWriter(rc).WriteString(node.(*YouTube).Video)
+	_, _ = io.WriteString(w, `" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`)
 	return ast.WalkContinue, nil
 }
 
-func (r *HTMLRenderer) renderTwitterEmbed(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func renderTwitter(w io.Writer, _ []byte, node ast.Node, entering bool, rc renderer.Context) (ast.WalkStatus, error) {
 	if entering {
 		return ast.WalkContinue, nil
 	}
-
-	tw := node.(*Twitter)
-	w.Write([]byte(`<blockquote class="twitter-tweet" data-theme="dark"><a href="https://twitter.com/x/status/` + tw.TweetID + `"></a></blockquote><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>`))
+	_, _ = io.WriteString(w, `<blockquote class="twitter-tweet" data-theme="dark"><a href="https://twitter.com/x/status/`)
+	_, _ = html.ContextTextWriter(rc).WriteString(node.(*Twitter).TweetID)
+	_, _ = io.WriteString(w, `"></a></blockquote><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>`)
 	return ast.WalkContinue, nil
-}
-
-type ObsidianEmbedExtender struct{}
-
-func (e *ObsidianEmbedExtender) Extend(m goldmark.Markdown) {
-	m.Parser().AddOptions(
-		parser.WithASTTransformers(
-			util.Prioritized(defaultASTTransformer, 500),
-		),
-	)
-	m.Renderer().AddOptions(
-		renderer.WithNodeRenderers(
-			util.Prioritized(NewHTMLRenderer(), 500),
-		),
-	)
 }

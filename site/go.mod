@@ -13,8 +13,7 @@ require (
 	github.com/otiai10/copy v1.14.1
 	github.com/resend/resend-go/v4 v4.13.0
 	github.com/samber/lo v1.53.0
-	github.com/yuin/goldmark v1.8.7
-	go.abhg.dev/goldmark/hashtag v0.4.0
+	github.com/yuin/goldmark/v2 v2.1.16
 	golang.org/x/oauth2 v0.38.0
 	google.golang.org/api v0.316.0
 )
@@ -40,7 +39,6 @@ require (
 	github.com/aws/smithy-go v1.28.9 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
-	github.com/forPelevin/gomoji v1.4.1 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/s2a-go v0.1.11 // indirect
@@ -50,7 +48,6 @@ require (
 	github.com/itchyny/gojq v0.12.18 // indirect
 	github.com/itchyny/timefmt-go v0.1.7 // indirect
 	github.com/otiai10/mint v1.6.3 // indirect
-	github.com/rivo/uniseg v0.4.7 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.69.0 // indirect
 	go.opentelemetry.io/otel v1.47.0 // indirect

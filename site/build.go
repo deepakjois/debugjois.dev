@@ -15,31 +15,56 @@ import (
 	"github.com/gorilla/feeds"
 	"github.com/otiai10/copy"
 	lo "github.com/samber/lo"
-	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/extension"
-	"github.com/yuin/goldmark/parser"
-	"go.abhg.dev/goldmark/hashtag"
+	"github.com/yuin/goldmark/v2/extension"
+	"github.com/yuin/goldmark/v2/parser"
+	"github.com/yuin/goldmark/v2/renderer/html"
 )
 
 type BuildCmd struct {
 	Dev     bool `help:"Run in dev mode, which compiles scratch file and drafts" default:"false"`
 	Rebuild bool `help:"Rebuild the entire archive" default:"false"`
-	md      goldmark.Markdown
+	md      *markdown
 }
 
 func (b *BuildCmd) Run() error {
-	b.md = goldmark.New(
-		goldmark.WithParserOptions(
-			parser.WithAutoHeadingID(),
-		),
-		goldmark.WithExtensions(
-			&hashtag.Extender{Variant: hashtag.ObsidianVariant},
-			&ObsidianImageExtender{ImagePath: "/images/"},
-			&ObsidianEmbedExtender{},
-			extension.NewLinkify(),
-		),
-	)
+	b.md = newMarkdown()
 	return b.generateSite()
+}
+
+// markdown converts Markdown notes to HTML.
+type markdown struct {
+	parser   parser.Parser
+	renderer html.Renderer
+}
+
+func newMarkdown() *markdown {
+	return &markdown{
+		parser: parser.New(
+			parser.WithAutoHeadingID(),
+			parser.WithExtensions(
+				newHashtagParser(),
+				newObsidianImageParser("/images/"),
+				newObsidianEmbedParser(),
+				newMathParser(),
+				extension.NewLinkifyParser(),
+				extension.NewTableParser(),
+			),
+		),
+		renderer: html.New(
+			html.WithExtensions(
+				newHashtagHTMLRenderer(),
+				newObsidianImageHTMLRenderer(),
+				newObsidianEmbedHTMLRenderer(),
+				newMathHTMLRenderer(),
+				extension.NewTableHTMLRenderer(),
+			),
+		),
+	}
+}
+
+// Convert writes the HTML rendering of source to w.
+func (m *markdown) Convert(source []byte, w io.Writer) error {
+	return m.renderer.Render(w, source, m.parser.Parse(source))
 }
 
 // Page represents the structure of a web page.
@@ -124,7 +149,7 @@ func generateIndexPage(tmpl *template.Template) error {
 	return renderPage(tmpl, "build/index.html", page)
 }
 
-func getAllNotes(md goldmark.Markdown) (notes []*Note, err error) {
+func getAllNotes(md *markdown) (notes []*Note, err error) {
 	files, err := script.ListFiles("content/daily-notes/*.md").Slice()
 	if err != nil {
 		return nil, fmt.Errorf("list daily notes: %w", err)
@@ -274,7 +299,7 @@ func generateDailyNotesArchiveIndex(tmpl *template.Template, grouped []GroupedNo
 	return renderPage(tmpl, "build/daily-archive-index", page)
 }
 
-func generateScratchPage(md goldmark.Markdown, tmpl *template.Template) error {
+func generateScratchPage(md *markdown, tmpl *template.Template) error {
 	var buf bytes.Buffer
 	if err := convertMarkdownToHTML(md, "content/scratch.md", &buf); err != nil {
 		return fmt.Errorf("convert scratch: %w", err)
@@ -334,7 +359,7 @@ func renderDailyNotesFeed(notes []*Note) error {
 	return feeds.WriteXML(feed, f)
 }
 
-func convertMarkdownToHTML(md goldmark.Markdown, filename string, w io.Writer) error {
+func convertMarkdownToHTML(md *markdown, filename string, w io.Writer) error {
 	content, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("read markdown file: %w", err)

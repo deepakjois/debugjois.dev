@@ -35,6 +35,28 @@
                     setTimeout(() => msg.remove(), 2000);
                 });
             });
+
+            // Render TeX math with KaTeX, loading it only on pages that have math.
+            if (document.querySelector('.math')) {
+                const css = document.createElement('link');
+                css.rel = 'stylesheet';
+                css.href = 'https://cdn.jsdelivr.net/npm/katex@0.19.1/dist/katex.min.css';
+                css.integrity = 'sha384-WwGtaC6ywCHxA5cstpj/3+xIZvTez8dq2IcBQaXRkenHZ7FVVq1ZROtURwfbtTlG';
+                css.crossOrigin = 'anonymous';
+                const js = document.createElement('script');
+                js.src = 'https://cdn.jsdelivr.net/npm/katex@0.19.1/dist/katex.min.js';
+                js.integrity = 'sha384-a1WQdjRj162i159OYq041X6I4K8NenkrI09LlPmiHg0YOb7CR+wJOraXwK9abpnE';
+                js.crossOrigin = 'anonymous';
+                js.onload = () => {
+                    document.querySelectorAll('.math').forEach(el => {
+                        katex.render(el.textContent, el, {
+                            displayMode: el.classList.contains('math-display'),
+                            throwOnError: false,
+                        });
+                    });
+                };
+                document.head.append(css, js);
+            }
         });
     </script>
 </head>

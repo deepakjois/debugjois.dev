@@ -1,119 +1,93 @@
 package main
 
 import (
-	"fmt"
+	"bytes"
+	"io"
 	"path"
 
-	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/ast"
-	"github.com/yuin/goldmark/parser"
-	"github.com/yuin/goldmark/renderer"
-	"github.com/yuin/goldmark/text"
-	"github.com/yuin/goldmark/util"
+	"github.com/yuin/goldmark/v2/ast"
+	"github.com/yuin/goldmark/v2/parser"
+	"github.com/yuin/goldmark/v2/renderer"
+	"github.com/yuin/goldmark/v2/renderer/html"
+	"github.com/yuin/goldmark/v2/text"
+	"github.com/yuin/goldmark/v2/util"
 )
 
-// ObsidianImage represents an Obsidian-style embedded image
+// ObsidianImage represents an Obsidian-style embedded image: ![[file.png]]
 type ObsidianImage struct {
 	ast.BaseInline
 	Filename string
 }
 
-// Kind returns the kind of node
-func (n *ObsidianImage) Kind() ast.NodeKind {
-	return ast.KindImage
+// KindObsidianImage is the NodeKind of ObsidianImage nodes.
+var KindObsidianImage = ast.NewNodeKind("ObsidianImage")
+
+// Kind implements ast.Node.
+func (n *ObsidianImage) Kind() ast.NodeKind { return KindObsidianImage }
+
+// Dump implements ast.Node.
+func (n *ObsidianImage) Dump(_ []byte) *ast.NodeDump {
+	return ast.NewNodeDump(n, map[string]any{"Filename": n.Filename})
 }
 
-// Dump dumps the node to a string
-func (n *ObsidianImage) Dump(source []byte, level int) {
-	ast.DumpHelper(n, source, level, nil, nil)
+// obsidianImageParser parses Obsidian-style image embeds.
+type obsidianImageParser struct {
+	imagePath string
 }
 
-// ObsidianImageParser parses Obsidian-style image embeds
-type ObsidianImageParser struct {
-	ImagePath string
-}
+func (s *obsidianImageParser) Trigger() []byte { return []byte{'!'} }
 
-// NewObsidianImageParser returns a new ObsidianImageParser
-func NewObsidianImageParser(imagePath string) parser.InlineParser {
-	return &ObsidianImageParser{ImagePath: imagePath}
-}
-
-// Trigger returns the characters that trigger this parser
-func (s *ObsidianImageParser) Trigger() []byte {
-	return []byte{'!'}
-}
-
-// Parse parses the Obsidian-style image embed
-func (s *ObsidianImageParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
+func (s *obsidianImageParser) Parse(_ ast.Node, block text.Reader, _ parser.Context) ast.Node {
 	line, _ := block.PeekLine()
-	if len(line) < 5 || line[1] != '[' || line[2] != '[' {
+	if !bytes.HasPrefix(line, []byte("![[")) {
 		return nil
 	}
-
-	block.Advance(3) // Skip "![["
-
-	closeBracketPos := -1
-	for i := 3; i < len(line)-1; i++ {
-		if line[i] == ']' && line[i+1] == ']' {
-			closeBracketPos = i
-			break
-		}
+	end := bytes.Index(line[3:], []byte("]]"))
+	if end <= 0 {
+		return nil
 	}
+	n := &ObsidianImage{Filename: path.Join(s.imagePath, string(line[3:3+end]))}
+	n.Init(n)
+	block.Advance(3 + end + 2)
+	return n
+}
 
-	if closeBracketPos == -1 {
-		return nil // No closing brackets found
+func newObsidianImageParser(imagePath string) parser.Extension {
+	return obsidianImageParserExtension{imagePath: imagePath}
+}
+
+type obsidianImageParserExtension struct {
+	imagePath string
+}
+
+func (e obsidianImageParserExtension) ParserOptions(*parser.Config) []parser.Option {
+	return []parser.Option{
+		parser.WithInlineParsers(
+			util.Prioritized[parser.InlineParser](&obsidianImageParser{imagePath: e.imagePath}, 100),
+		),
 	}
-
-	filename := string(line[3:closeBracketPos])
-	node := &ObsidianImage{Filename: path.Join(s.ImagePath, filename)}
-	block.Advance(closeBracketPos - 3 + 2) // +2 for "]]"
-	return node
 }
 
-// ObsidianImageRenderer renders ObsidianImage nodes
-type ObsidianImageRenderer struct{}
+func newObsidianImageHTMLRenderer() html.Extension { return obsidianImageHTMLRendererExtension{} }
 
-// NewObsidianImageRenderer returns a new ObsidianImageRenderer
-func NewObsidianImageRenderer() renderer.NodeRenderer {
-	return &ObsidianImageRenderer{}
+type obsidianImageHTMLRendererExtension struct{}
+
+func (obsidianImageHTMLRendererExtension) RendererOptions(*html.Config) []html.Option {
+	return []html.Option{
+		html.WithNodeRenderer(KindObsidianImage, html.NodeRendererFunc(renderObsidianImage)),
+	}
 }
 
-// RegisterFuncs registers the render functions
-func (r *ObsidianImageRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
-	reg.Register(ast.KindImage, r.renderObsidianImage)
-}
-
-func (r *ObsidianImageRenderer) renderObsidianImage(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func renderObsidianImage(w io.Writer, _ []byte, node ast.Node, entering bool, rc renderer.Context) (ast.WalkStatus, error) {
 	if !entering {
 		return ast.WalkContinue, nil
 	}
-
-	n, ok := node.(*ObsidianImage)
-	if !ok { // Regular image
-		return ast.WalkContinue, nil
-	}
-
-	if _, err := fmt.Fprintf(w, `<img src="%s" alt="%s">`, n.Filename, n.Filename); err != nil {
-		return ast.WalkSkipChildren, err
-	}
-
+	n := node.(*ObsidianImage)
+	tw := html.ContextTextWriter(rc)
+	_, _ = io.WriteString(w, `<img src="`)
+	_, _ = tw.WriteString(n.Filename)
+	_, _ = io.WriteString(w, `" alt="`)
+	_, _ = tw.WriteString(n.Filename)
+	_, _ = io.WriteString(w, `">`)
 	return ast.WalkSkipChildren, nil
-}
-
-// ObsidianImageExtender is a custom goldmark extension for Obsidian image embeds
-type ObsidianImageExtender struct {
-	ImagePath string
-}
-
-func (e *ObsidianImageExtender) Extend(m goldmark.Markdown) {
-	m.Parser().AddOptions(
-		parser.WithInlineParsers(
-			util.Prioritized(NewObsidianImageParser(e.ImagePath), 100),
-		),
-	)
-	m.Renderer().AddOptions(
-		renderer.WithNodeRenderers(
-			util.Prioritized(NewObsidianImageRenderer(), 100),
-		),
-	)
 }

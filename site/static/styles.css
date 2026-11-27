@@ -115,6 +115,21 @@ blockquote {
     border-left: 1px solid #444;
 }
 
+table {
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 0.25em 1.5em 0.25em 0;
+    text-align: left;
+}
+
+.math-display {
+    display: block;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
 .calendar-container {
     display: flex;
     flex-wrap: wrap;
